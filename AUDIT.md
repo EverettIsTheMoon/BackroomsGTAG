@@ -32,7 +32,7 @@ The pictures were used as visual references only; their pixels are not bundled i
 - Parsed the full module script with a JavaScript syntax check after stripping its single top-level Three.js import: **PASS**.
 - Verified in the latest committed source that the old 220-mesh floor-speck loop and misoriented random patch code are gone: **PASS**.
 - Verified that the source contains procedural wallpaper/carpet/ceiling textures, instanced wall and light meshes, corrected outlet orientation, the XR viewer-pose height correction, the ambient hum and the roaming creature: **PASS**.
-- Confirmed the GitHub Pages workflow succeeded for the earlier game/monster commit. The newest visual and error-overlay commits still need their own workflow runs to finish.
+- Added a Node-based static smoke check to the Pages workflow. Every deployment checks for the required UI, core feature markers and valid module syntax before uploading the site. The latest run status should be checked in the repository Actions tab; these checks do not simulate a headset.
 - **Not testable here:** actual Quest 1/Quest 2 frame rate, controller contact behavior, perceived floor alignment, headset audio volume/spatialization, and visual appearance inside the headset. Static source checks do not substitute for runtime testing.
 
 ## Performance and design decisions
