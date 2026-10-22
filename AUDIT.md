@@ -47,6 +47,8 @@ The pictures were used as visual references only; their pixels are not bundled i
 23. **Ceiling repetition:** every ceiling tile had previously shared identical pixel noise and tone. Per-instance tinting now adds small, restrained variations across the 7,569 tile instances while retaining the single batched mesh.
 24. **Monster sound range:** the original monster spawn was in the diagonally opposite corner, roughly 67 m from the player start and beyond the growl panner's 55 m maximum distance. Its initial corner is now on the far side of the same edge, roughly 47 m away, so the player can hear the low growls faintly before the creature wanders closer.
 25. **Spawn orientation:** the player spawn was near two boundary walls but always faced north, which could leave the first view pointed straight into a wall. Reset now checks the guaranteed interior openings and faces north if that corridor is open, otherwise east.
+26. **Monster movement looked too static:** the creature translated through the maze while its arms and legs held fixed poses. Added restrained counter-swinging limb motion, parented hands to arms and simple feet to legs, so the silhouette reads as a walking creature instead of a sliding prop.
+27. **Guaranteed room variation:** room widening used to be entirely random, so a rare layout could contain no widened rooms and therefore no support-column instances. The central 2×2 block is now always widened, and CI asserts every generated maze includes at least one widened room.
 
 ## Checks run
 
@@ -54,7 +56,7 @@ The pictures were used as visual references only; their pixels are not bundled i
 - Rechecked the complete final source after controller-grip, session-failure, sign and outlet changes. The module syntax check passed.
 - Verified in the latest committed source that the old 220-mesh floor-speck loop and misoriented random patch code are gone: **PASS**.
 - Verified that the source contains procedural wallpaper/carpet/ceiling textures, instanced walls and ceiling tiles, collision-aware wider rooms and support columns, corrected outlet orientation, a visible wall-mounted warning sign, the camera-only XR viewer-height correction, grip-space controller locomotion with connection-state guards, session-end and failed-session cleanup, the ambient hum and the roaming creature: **PASS**.
-- Added a Node-based static smoke check to the Pages workflow. Every deployment checks for the required UI, core feature markers and valid module syntax before uploading the site. The latest run status should be checked in the repository Actions tab; these checks do not simulate a headset.
+- Added a Node-based static smoke check to the Pages workflow. It checks UI/core feature markers and JavaScript syntax, executes 50 randomized maze generations to verify all 169 cells remain connected, and checks that widened rooms stay open and at least one room exists per run. It also checks the monster gait, ceiling tile tinting, lighting and the camera-only height correction. These checks are static/logic tests, not headset simulation.
 - **Not testable here:** actual Quest 1/Quest 2 frame rate, controller contact behavior, perceived floor alignment, headset audio volume/spatialization, and visual appearance inside the headset. Static source checks do not substitute for runtime testing.
 
 ## Performance and design decisions
