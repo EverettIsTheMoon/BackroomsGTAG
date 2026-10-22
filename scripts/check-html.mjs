@@ -25,8 +25,13 @@ for (const id of ['enter', 'start', 'reset', 'hint']) {
 }
 for (const marker of [
   "renderer.xr.setReferenceSpaceType('local-floor')",
+  "requiredFeatures:['local-floor']",
   'TARGET_VR_EYE_HEIGHT=1.52',
   'camera.position.set(0,1.52,0)',
+  'renderer.xr.getControllerGrip(0)',
+  'controllerConnected[i]',
+  "fillText('NO EXIT'",
+  "session.addEventListener('end'",
   "session.addEventListener('end'",
   'getViewerPose(renderer.xr.getReferenceSpace())',
   'new THREE.InstancedMesh(wallGeo',
