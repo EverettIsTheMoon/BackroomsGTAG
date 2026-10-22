@@ -215,9 +215,14 @@ let ceilingTileIndex=0;
 for(let tz=0;tz<ceilingGridCount;tz++)for(let tx=0;tx<ceilingGridCount;tx++){
   wallObject.position.set(-half+(tx+.5)*ceilingTileSize,wallH-.0175,-half+(tz+.5)*ceilingTileSize);
   wallObject.rotation.set(0,0,0);wallObject.scale.set(1,1,1);wallObject.updateMatrix();
+  const tileTone=Math.random();
+  const tileTint=tileTone<.08?new THREE.Color(0xd4cbb0):tileTone<.19?new THREE.Color(0xe7e0c9):new THREE.Color(0xffffff);
+  ceilingTiles.setColorAt(ceilingTileIndex,tileTint);
   ceilingTiles.setMatrixAt(ceilingTileIndex++,wallObject.matrix);
 }
-ceilingTiles.instanceMatrix.needsUpdate=true;ceilingTiles.computeBoundingSphere();scene.add(ceilingTiles);
+ceilingTiles.instanceMatrix.needsUpdate=true;
+if(ceilingTiles.instanceColor)ceilingTiles.instanceColor.needsUpdate=true;
+ceilingTiles.computeBoundingSphere();scene.add(ceilingTiles);
 
 const lightMesh=new THREE.InstancedMesh(lightGeo,lightMat,fixtureCoords.length);
 for(let i=0;i<fixtureCoords.length;i++){
