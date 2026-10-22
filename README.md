@@ -12,7 +12,7 @@ A lightweight WebXR horror-game prototype inspired by Gorilla Tag locomotion.
 - Procedurally generated 13×13 maze with yellow walls, ceiling, floor, basic fog, and simple fluorescent-style light panels
 - Basic controller contact/hand-anchor movement prototype
 - Fixed virtual head height intended to prevent physical crouching/standing from changing in-game height
-- Desktop WASD movement and drag-to-look preview
+- Desktop WASD movement and drag-to-look preview (no mobile joystick yet)
 - Basic wall and outer-boundary checks, plus a reset button
 
 ## Known limitations
@@ -25,7 +25,7 @@ A lightweight WebXR horror-game prototype inspired by Gorilla Tag locomotion.
 
 ## Controls
 - **VR:** move your tracked controllers against surfaces to push away; either controller can contribute.
-- **Desktop:** WASD to move, drag the mouse on the game view to look around.
+- **Desktop:** WASD to move, drag the mouse on the game view to look around. Touchscreen-only movement controls are not implemented yet.
 - **Reset:** returns to the starting position.
 
 This project uses Three.js and WebXR. WebXR requires HTTPS and a compatible browser/headset.
