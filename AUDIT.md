@@ -40,12 +40,14 @@ The pictures were used as visual references only; their pixels are not bundled i
 19. **Room variation:** a strict grid of corridors lacked the broad, column-supported rooms visible in the source reference imagery. Some 2×2-cell blocks now open into 8 m × 8 m rooms. Each widened room gets a locally textured square support column and plinth, with collision shapes included for locomotion and hand contact.
 20. **Static checks expanded:** the deploy-time smoke test now also checks for room widening, support-column collision and the camera-only head-height correction.
 
+21. **Ceiling relief:** the ceiling was previously represented by one textured plane, so its tile grid had no geometric relief. It is now a grid of 7,569 individually instanced 0.598 m acoustic ceiling tiles above a backing plane. The shared mesh keeps the entire grid to one draw call, and fluorescent panels sit slightly below the tile underside so the bright faces stay visible from the room.
+
 ## Checks run
 
 - Parsed the full module script with a JavaScript syntax check after stripping its single top-level Three.js import: **PASS**.
 - Rechecked the complete final source after controller-grip, session-failure, sign and outlet changes. The module syntax check passed.
 - Verified in the latest committed source that the old 220-mesh floor-speck loop and misoriented random patch code are gone: **PASS**.
-- Verified that the source contains procedural wallpaper/carpet/ceiling textures, instanced wall and light meshes, corrected outlet orientation, a visible wall-mounted warning sign, the XR viewer-pose height correction, grip-space controller locomotion with connection-state guards, session-end and failed-session cleanup, the ambient hum and the roaming creature: **PASS**.
+- Verified that the source contains procedural wallpaper/carpet/ceiling textures, instanced walls and ceiling tiles, collision-aware wider rooms and support columns, corrected outlet orientation, a visible wall-mounted warning sign, the camera-only XR viewer-height correction, grip-space controller locomotion with connection-state guards, session-end and failed-session cleanup, the ambient hum and the roaming creature: **PASS**.
 - Added a Node-based static smoke check to the Pages workflow. Every deployment checks for the required UI, core feature markers and valid module syntax before uploading the site. The latest run status should be checked in the repository Actions tab; these checks do not simulate a headset.
 - **Not testable here:** actual Quest 1/Quest 2 frame rate, controller contact behavior, perceived floor alignment, headset audio volume/spatialization, and visual appearance inside the headset. Static source checks do not substitute for runtime testing.
 
