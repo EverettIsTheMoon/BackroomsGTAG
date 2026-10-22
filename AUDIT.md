@@ -45,6 +45,7 @@ The pictures were used as visual references only; their pixels are not bundled i
 22. **Lighting coverage:** the former nine point lights over the 52 m × 52 m scene left much of the environment outside their 10 m radius, while the glowing panels themselves were decorative. Replaced that with a 4 × 4 grid of lower-intensity point lights with a 16 m range. This improves overall coverage without adding dynamic shadows or making every one of the 49 panels a separate light.
 
 23. **Ceiling repetition:** every ceiling tile had previously shared identical pixel noise and tone. Per-instance tinting now adds small, restrained variations across the 7,569 tile instances while retaining the single batched mesh.
+24. **Monster sound range:** the original monster spawn was in the diagonally opposite corner, roughly 67 m from the player start and beyond the growl panner's 55 m maximum distance. Its initial corner is now on the far side of the same edge, roughly 47 m away, so the player can hear the low growls faintly before the creature wanders closer.
 
 ## Checks run
 
