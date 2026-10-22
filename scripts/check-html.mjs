@@ -53,6 +53,7 @@ for (const marker of [
   'carpetTexture=makeCanvasTexture',
   'ceilingTexture=makeCanvasTexture',
   'function updateMonster(dt,xrFrame)',
+  'for(const [frequency,level] of [[119.8,.55],[239.6,.22],[359.4,.08]])',
   'function playMonsterNoise()',
   "window.addEventListener('unhandledrejection'"
 ]) {
