@@ -33,8 +33,8 @@ import * as THREE from 'three';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb9ad73);
 scene.fog = new THREE.FogExp2(0xb9ad73, 0.027);
-scene.add(new THREE.HemisphereLight(0xffe8b0, 0x393522, 0.95));
-scene.add(new THREE.AmbientLight(0xffffff, 0.12));
+scene.add(new THREE.HemisphereLight(0xffe8b0, 0x393522, 0.72));
+scene.add(new THREE.AmbientLight(0xffffff, 0.22));
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 90);
 const rig = new THREE.Group();
 // Keep headset height correction in a camera-only parent so controller/floor contact stays grounded.
@@ -75,17 +75,6 @@ function makeCanvasTexture(size,paint,seed){
   texture.anisotropy=Math.min(2,renderer.capabilities.getMaxAnisotropy());
   return texture;
 }
-const ceilingTexture=makeCanvasTexture(128,(ctx,size,rng)=>{
-  ctx.fillStyle='#a49f87';ctx.fillRect(0,0,size,size);
-  for(let i=0;i<4500;i++){
-    const v=rng()>.5;
-    ctx.fillStyle=v?'rgba(246,240,211,0.045)':'rgba(50,49,39,0.05)';
-    ctx.fillRect(rng()*size,rng()*size,1+rng()*2,1+rng()*2);
-  }
-  ctx.fillStyle='rgba(56,55,45,0.48)';ctx.fillRect(0,0,size,2);ctx.fillRect(0,0,2,size);
-  ctx.fillStyle='rgba(235,230,207,0.45)';ctx.fillRect(3,3,size-6,1);ctx.fillRect(3,3,1,size-6);
-},307);
-ceilingTexture.repeat.set(1,1);
 const floorStainTexture=makeCanvasTexture(128,(ctx,size,rng)=>{
   ctx.clearRect(0,0,size,size);
   for(let i=0;i<8;i++){
@@ -110,13 +99,13 @@ const wallGrimeTexture=makeCanvasTexture(128,(ctx,size,rng)=>{
 },521);
 const floorMat=new THREE.MeshStandardMaterial({map:carpetTexture,color:0xffffff,roughness:1});
 const wallMat=new THREE.MeshStandardMaterial({map:wallpaperTexture,color:0xffffff,roughness:.98});
-const ceilingMat=new THREE.MeshStandardMaterial({map:ceilingTexture,color:0xffffff,roughness:1});
+const ceilingMat=new THREE.MeshStandardMaterial({map:carpetTexture,color:0xffffff,roughness:1,side:THREE.FrontSide});
 const trimMat=mat(0x756b45,.95);
 const lightMat=new THREE.MeshBasicMaterial({color:0xffffff});
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(mazeSize*cell,mazeSize*cell),floorMat);
 floor.rotation.x=-Math.PI/2;floor.position.y=0;scene.add(floor);
-// A matte backing sits just above the visible tiles; it only shows through their fine joints.
-const ceilingBacking=new THREE.Mesh(new THREE.PlaneGeometry(mazeSize*cell,mazeSize*cell),new THREE.MeshBasicMaterial({color:0x777361}));
+// One textured ceiling plane replaces thousands of individual tile boxes.
+const ceilingBacking=new THREE.Mesh(new THREE.PlaneGeometry(mazeSize*cell,mazeSize*cell),ceilingMat);
 ceilingBacking.rotation.x=Math.PI/2;ceilingBacking.position.y=wallH+.035;scene.add(ceilingBacking);
 const grid=Array.from({length:mazeSize},()=>Array.from({length:mazeSize},()=>({seen:false,w:[true,true,true,true]})));
 const dirs=[[-1,0,0,2],[0,1,1,3],[1,0,2,0],[0,-1,3,1]];
@@ -175,23 +164,6 @@ for(let z=0;z<mazeSize;z+=2)for(let x=0;x<mazeSize;x+=2){
   const lx=(x-mazeSize/2+.5)*cell,lz=(z-mazeSize/2+.5)*cell;
   fixtureCoords.push({x:lx,z:lz,index:fixtureCoords.length});
 }
-// Individually instanced mineral-fiber tiles add real grid relief without thousands of draw calls.
-const ceilingGridCount=Math.ceil(mazeSize*cell/.6);
-const ceilingTileSize=(mazeSize*cell)/ceilingGridCount;
-const ceilingTileGeo=new THREE.BoxGeometry(ceilingTileSize-.008,.035,ceilingTileSize-.008);
-const ceilingTiles=new THREE.InstancedMesh(ceilingTileGeo,ceilingMat,ceilingGridCount*ceilingGridCount);
-let ceilingTileIndex=0;
-for(let tz=0;tz<ceilingGridCount;tz++)for(let tx=0;tx<ceilingGridCount;tx++){
-  wallObject.position.set(-half+(tx+.5)*ceilingTileSize,wallH-.0175,-half+(tz+.5)*ceilingTileSize);
-  wallObject.rotation.set(0,0,0);wallObject.scale.set(1,1,1);wallObject.updateMatrix();
-  const tileTone=Math.random();
-  const tileTint=tileTone<.08?new THREE.Color(0xd4cbb0):tileTone<.19?new THREE.Color(0xe7e0c9):new THREE.Color(0xffffff);
-  ceilingTiles.setColorAt(ceilingTileIndex,tileTint);
-  ceilingTiles.setMatrixAt(ceilingTileIndex++,wallObject.matrix);
-}
-ceilingTiles.instanceMatrix.needsUpdate=true;
-if(ceilingTiles.instanceColor)ceilingTiles.instanceColor.needsUpdate=true;
-ceilingTiles.computeBoundingSphere();scene.add(ceilingTiles);
 
 const lightMesh=new THREE.InstancedMesh(lightGeo,lightMat,fixtureCoords.length);
 for(let i=0;i<fixtureCoords.length;i++){
@@ -203,12 +175,12 @@ lightMesh.instanceMatrix.needsUpdate=true;if(lightMesh.instanceColor)lightMesh.i
 lightMesh.computeBoundingSphere();scene.add(lightMesh);
 const fluorescentStates=[];
 // A restrained 4 x 4 point-light grid gives the fluorescent panels actual illumination.
-for(let z=0;z<mazeSize;z+=4)for(let x=0;x<mazeSize;x+=4){
+for(let z=0;z<mazeSize;z+=6)for(let x=0;x<mazeSize;x+=6){
   const px=(x-mazeSize/2+.5)*cell,pz=(z-mazeSize/2+.5)*cell;
-  const bulb=new THREE.PointLight(0xffe8ad,.72,16,2);
+  const bulb=new THREE.PointLight(0xffe8ad,.55,13,2);
   bulb.position.set(px,wallH-.18,pz);scene.add(bulb);
   const panelIndex=fixtureCoords.findIndex(f=>Math.abs(f.x-px)<.01&&Math.abs(f.z-pz)<.01);
-  fluorescentStates.push({bulb,panelIndex,base:.72,flickers:Math.random()<.38,nextCheck:performance.now()+1500+Math.random()*4000,flickerUntil:0,panelDim:false});
+  fluorescentStates.push({bulb,panelIndex,base:.55,flickers:Math.random()<.38,nextCheck:performance.now()+1500+Math.random()*4000,flickerUntil:0,panelDim:false});
 }
 const baseboardGeo=new THREE.BoxGeometry(cell,.12,.06);
 const baseboardMesh=new THREE.InstancedMesh(baseboardGeo,trimMat,wallInstances.length*2);
