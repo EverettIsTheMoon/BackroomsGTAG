@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.5 · LOCOMOTION QA</div></div><button id="reset" class="secondary">RESET</button></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.6 · ROOM VARIATION</div></div><button id="reset" class="secondary">RESET</button></div>
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile test: swipe to move the hand. In VR, keep your head height steady and listen for the creature.</p></section>
  <div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span>NO EXIT FOUND</span></div>
 </div>
@@ -49,7 +49,7 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1
 document.body.appendChild(renderer.domElement);
 
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
-const wallBoxes=[];
+const wallBoxes=[], roomPillarBoxes=[];
 const mazeSize=13, cell=4, wallH=2.65, half=mazeSize*cell/2;
 
 // Small, locally generated textures keep the game self-contained and avoid slow external image downloads.
@@ -153,6 +153,21 @@ const dirs=[[-1,0,0,2],[0,1,1,3],[1,0,2,0],[0,-1,3,1]];
 const stack=[[0,0]];grid[0][0].seen=true;
 while(stack.length){const [x,z]=stack[stack.length-1];const opts=dirs.map(d=>[x+d[0],z+d[1],d]).filter(([nx,nz])=>nx>=0&&nz>=0&&nx<mazeSize&&nz<mazeSize&&!grid[nz][nx].seen);if(!opts.length){stack.pop();continue;}const [nx,nz,d]=opts[Math.floor(Math.random()*opts.length)];grid[z][x].w[d[2]]=false;grid[nz][nx].w[d[3]]=false;grid[nz][nx].seen=true;stack.push([nx,nz]);}
 for(let z=1;z<mazeSize-1;z+=3) for(let x=1;x<mazeSize-1;x+=4){if(Math.random()<.65){grid[z][x].w[1]=false;grid[z+1][x].w[3]=false;}}
+// Break up the corridor-only look with occasional wider 8 m x 8 m rooms.
+// Opening all four internal cell edges keeps the grid connected and lets the entity route through them.
+const wideRooms=[];
+for(const roomZ of [2,6,10])for(const roomX of [2,6,10]){
+  if(Math.random()>.58)continue;
+  wideRooms.push({x:roomX,z:roomZ});
+  for(const x of [roomX,roomX+1]){
+    grid[roomZ][x].w[1]=false;
+    grid[roomZ+1][x].w[3]=false;
+  }
+  for(const z of [roomZ,roomZ+1]){
+    grid[z][roomX].w[2]=false;
+    grid[z][roomX+1].w[0]=false;
+  }
+}
 const wallGeo=new THREE.BoxGeometry(cell,wallH,.16);
 const wallInstances=[];
 function addWall(x,z,orientation){
@@ -215,6 +230,29 @@ for(const w of wallInstances)for(const side of [-1,1]){
   baseboardMesh.setMatrixAt(baseboardIndex++,wallObject.matrix);
 }
 baseboardMesh.instanceMatrix.needsUpdate=true;baseboardMesh.computeBoundingSphere();scene.add(baseboardMesh);
+
+// A single square, wallpapered support column in each widened room matches real drop-ceiling interiors.
+const pillarPlacements=wideRooms.map(room=>({
+  x:(room.x-mazeSize/2+1)*cell,
+  z:(room.z-mazeSize/2+1)*cell
+}));
+const pillarTexture=wallpaperTexture.clone();
+pillarTexture.repeat.set(.35,2);pillarTexture.needsUpdate=true;
+const pillarMaterial=new THREE.MeshStandardMaterial({map:pillarTexture,roughness:.98});
+const pillarGeo=new THREE.BoxGeometry(.40,wallH,.40);
+const pillarMesh=new THREE.InstancedMesh(pillarGeo,pillarMaterial,pillarPlacements.length);
+const pillarPlinthGeo=new THREE.BoxGeometry(.52,.12,.52);
+const pillarPlinthMesh=new THREE.InstancedMesh(pillarPlinthGeo,trimMat,pillarPlacements.length);
+for(let i=0;i<pillarPlacements.length;i++){
+  const p=pillarPlacements[i];
+  wallObject.position.set(p.x,wallH/2,p.z);wallObject.rotation.set(0,0,0);wallObject.scale.set(1,1,1);wallObject.updateMatrix();
+  pillarMesh.setMatrixAt(i,wallObject.matrix);
+  wallObject.position.set(p.x,.06,p.z);wallObject.updateMatrix();pillarPlinthMesh.setMatrixAt(i,wallObject.matrix);
+  roomPillarBoxes.push({minX:p.x-.28,maxX:p.x+.28,minZ:p.z-.28,maxZ:p.z+.28,minY:0,maxY:wallH});
+}
+pillarMesh.instanceMatrix.needsUpdate=true;pillarMesh.computeBoundingSphere();
+pillarPlinthMesh.instanceMatrix.needsUpdate=true;pillarPlinthMesh.computeBoundingSphere();
+if(pillarPlacements.length){scene.add(pillarMesh);scene.add(pillarPlinthMesh);}
 
 // Non-repeating damp carpet marks and subtle wall discoloration use instanced decals.
 // Earlier versions used hundreds of separate speck meshes and randomly oriented patches that could sit inside walls.
@@ -443,7 +481,7 @@ const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=fal
 const playerRadius=.22, ceilingHeadClearance=.28;
 const TARGET_VR_EYE_HEIGHT=1.52;
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
-function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
+function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
 function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
 reset();
 function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;testHand.visible=mobileTest;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,.55,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,1.52,0);}renderer.setAnimationLoop(animate);}
@@ -475,7 +513,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{if(mobileTest){activeTouc
 renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
 renderer.domElement.addEventListener('pointercancel',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
 renderer.domElement.addEventListener('pointermove',e=>{if(mobileTest&&e.pointerId===activeTouchId){const now=performance.now(), elapsed=Math.max(.008,(now-previousTouchTime)/1000), dy=e.clientY-previousTouchY;handVelocityY=THREE.MathUtils.clamp((-dy/elapsed)*.0105,-8.5,8.5);previousTouchY=e.clientY;previousTouchTime=now;return;}if(!desktop||!dragging)return;yaw-=(e.clientX-lastX)*.004;pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY;});
-function handTouches(p){if(p.y<.20)return true;for(const b of wallBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}return false;}
+function handTouches(p){if(p.y<.20)return true;for(const b of wallBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}for(const b of roomPillarBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}return false;}
 function animate(timestamp,xrFrame){
  const dt=Math.min(clock.getDelta(),.035);
  // XRViewerPose.transform is measured in the configured local-floor reference space, where Y=0 is floor level.
