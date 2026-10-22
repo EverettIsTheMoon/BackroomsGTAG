@@ -68,7 +68,7 @@ let mazeTrialsPassed = generationStart >= 0 && generationEnd > generationStart;
 let mazeTrialDetail = '';
 if (mazeTrialsPassed) {
   const generationCode = html.slice(generationStart, generationEnd) +
-    '\\nglobalThis.__grid = grid; globalThis.__dirs = dirs; globalThis.__wideRooms = wideRooms;';
+    '\nglobalThis.__grid = grid; globalThis.__dirs = dirs; globalThis.__wideRooms = wideRooms;';
   for (let trial = 0; trial < 50; trial++) {
     try {
       const context = { mazeSize: 13 };
