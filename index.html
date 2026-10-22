@@ -66,9 +66,8 @@ function makeCanvasTexture(size,paint,seed){
   return texture;
 }
 const wallpaperTexture=makeCanvasTexture(256,(ctx,size,rng)=>{
-  const bg=ctx.createLinearGradient(0,0,size,size);
-  bg.addColorStop(0,'#cec27f');bg.addColorStop(.48,'#c4b774');bg.addColorStop(1,'#b7aa69');
-  ctx.fillStyle=bg;ctx.fillRect(0,0,size,size);
+  // A uniform aged-paper base avoids a visible diagonal gradient seam each time the tile repeats.
+  ctx.fillStyle='#c4b774';ctx.fillRect(0,0,size,size);
   for(let i=0;i<10000;i++){
     const warm=rng()>.5;
     ctx.fillStyle=warm?'rgba(255,244,184,0.045)':'rgba(73,72,39,0.055)';
@@ -105,7 +104,7 @@ const carpetTexture=makeCanvasTexture(256,(ctx,size,rng)=>{
     ctx.moveTo(x,y);ctx.lineTo(x+(rng()-.5)*5,y+(rng()-.5)*3);ctx.stroke();
   }
 },209);
-carpetTexture.repeat.set(mazeSize*cell/.5,mazeSize*cell/.5);
+carpetTexture.repeat.set(mazeSize*cell/2,mazeSize*cell/2);
 const ceilingTexture=makeCanvasTexture(128,(ctx,size,rng)=>{
   ctx.fillStyle='#a49f87';ctx.fillRect(0,0,size,size);
   for(let i=0;i<4500;i++){
@@ -339,6 +338,26 @@ for(let i=0;i<outletPlacements.length;i++){
 outletPlates.instanceMatrix.needsUpdate=true;outletSlots.instanceMatrix.needsUpdate=true;
 outletPlates.computeBoundingSphere();outletSlots.computeBoundingSphere();
 if(outletPlacements.length){scene.add(outletPlates);scene.add(outletSlots);}
+
+// A few thin, dark loose cables on the carpet break up the empty floor, matching common reference scenes.
+// Curves are visual only and deliberately have no gameplay collision.
+const cableMat=new THREE.MeshStandardMaterial({color:0x25231f,roughness:.96});
+for(const room of wideRooms){
+  if(!(room.x===6&&room.z===6)&&Math.random()>.32)continue;
+  const cx=(room.x-mazeSize/2+1)*cell,cz=(room.z-mazeSize/2+1)*cell;
+  const points=[
+    new THREE.Vector3(cx-3.0,.024,cz+1.05),
+    new THREE.Vector3(cx-2.1,.026,cz+1.24),
+    new THREE.Vector3(cx-1.0,.025,cz+.93),
+    new THREE.Vector3(cx-.2,.025,cz+1.15),
+    new THREE.Vector3(cx+.8,.024,cz+1.02),
+    new THREE.Vector3(cx+2.0,.025,cz+1.20),
+    new THREE.Vector3(cx+3.0,.024,cz+1.08)
+  ];
+  const cableCurve=new THREE.CatmullRomCurve3(points);
+  const cable=new THREE.Mesh(new THREE.TubeGeometry(cableCurve,36,.012,5,false),cableMat);
+  scene.add(cable);
+}
 
 const signZ=-half+.115;
 const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.22,signZ);scene.add(sign);
