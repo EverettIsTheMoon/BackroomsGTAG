@@ -387,7 +387,7 @@ function startMonsterAudio(){
       const ctx=monsterAudioContext,humGain=ctx.createGain(),humFilter=ctx.createBiquadFilter();
       humGain.gain.value=.018;humFilter.type='lowpass';humFilter.frequency.value=260;
       humFilter.connect(humGain);humGain.connect(ctx.destination);
-      for(const [frequency,level] of [[59.8,.55],[119.6,.22],[179.4,.08]]){
+      for(const [frequency,level] of [[119.8,.55],[239.6,.22],[359.4,.08]]){
         const oscillator=ctx.createOscillator(),gain=ctx.createGain();
         oscillator.type='sine';oscillator.frequency.value=frequency;gain.gain.value=level;
         oscillator.connect(gain);gain.connect(humFilter);oscillator.start();
