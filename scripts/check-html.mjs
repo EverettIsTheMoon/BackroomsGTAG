@@ -19,12 +19,15 @@ const moduleScripts = [...html.matchAll(/<script type="module">([\s\S]*?)<\/scri
 check('index.html exists and is non-empty', html.length > 1000);
 check('exactly one module script', moduleScripts.length === 1, 'found ' + moduleScripts.length);
 check('Three.js import map is configured', html.includes('"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"'));
+check('unused hidden avatar geometry removed', !html.includes('mobileAvatar'));
 for (const id of ['enter', 'start', 'reset', 'hint']) {
   check('required UI element #' + id, new RegExp('id="' + id + '"').test(html));
 }
 for (const marker of [
   "renderer.xr.setReferenceSpaceType('local-floor')",
   'TARGET_VR_EYE_HEIGHT=1.52',
+  'camera.position.set(0,1.52,0)',
+  "session.addEventListener('end'",
   'getViewerPose(renderer.xr.getReferenceSpace())',
   'new THREE.InstancedMesh(wallGeo',
   'wallpaperTexture=makeCanvasTexture',
