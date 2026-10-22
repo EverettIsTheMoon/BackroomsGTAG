@@ -32,7 +32,6 @@ for (const marker of [
   'controllerConnected[i]',
   "fillText('NO EXIT'",
   "session.addEventListener('end'",
-  "session.addEventListener('end'",
   'getViewerPose(renderer.xr.getReferenceSpace())',
   'new THREE.InstancedMesh(wallGeo',
   'wallpaperTexture=makeCanvasTexture',
