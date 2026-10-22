@@ -12,8 +12,8 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.2 · MOBILE HAND TEST</div></div><button id="reset" class="secondary">RESET</button></div>
- <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Enter the maze, push off the walls, and listen carefully.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile test: swipe up/down to move the hand. A hard downward push at the floor should launch you upward.</p></section>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.3 · ROAMING ENTITY</div></div><button id="reset" class="secondary">RESET</button></div>
+ <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile test: swipe to move the hand. In VR, keep your head height steady and listen for the creature.</p></section>
  <div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span>NO EXIT FOUND</span></div>
 </div>
 <script type="module">
@@ -29,6 +29,8 @@ const rig = new THREE.Group(); rig.add(camera); scene.add(rig);
 const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 renderer.setSize(innerWidth,innerHeight); renderer.xr.enabled=true;
+// Use a floor-based reference space so tracked headset height is measured from the virtual floor.
+renderer.xr.setReferenceSpaceType('local-floor');
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
 document.body.appendChild(renderer.domElement);
@@ -112,6 +114,124 @@ for(const b of wallBoxes){
 const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.5,-half+1);scene.add(sign);
 const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({color:0x8bd477}));signText.position.set(0,2.5,-half+.94);scene.add(signText);
 
+// A low-poly roaming entity: long limbs, a narrow head and small emissive eyes.
+// Its route follows the maze's actual open cell connections, so it stays in corridors.
+const monster=new THREE.Group();
+const monsterVisual=new THREE.Group();monster.add(monsterVisual);
+const monsterSkin=new THREE.MeshStandardMaterial({color:0x171713,roughness:1});
+const monsterCloth=new THREE.MeshStandardMaterial({color:0x292820,roughness:1});
+const monsterMouthMat=new THREE.MeshBasicMaterial({color:0x020202});
+const monsterEyeMat=new THREE.MeshBasicMaterial({color:0xb21d12});
+const monsterBody=new THREE.Mesh(new THREE.CapsuleGeometry(.29,.72,3,6),monsterCloth);
+monsterBody.position.y=1.12;monsterVisual.add(monsterBody);
+const monsterHead=new THREE.Mesh(new THREE.SphereGeometry(.24,9,7),monsterSkin);
+monsterHead.scale.set(.82,1.42,.78);monsterHead.position.set(0,1.91,-.035);monsterVisual.add(monsterHead);
+const monsterJaw=new THREE.Mesh(new THREE.BoxGeometry(.22,.12,.08),monsterMouthMat);
+monsterJaw.position.set(0,1.73,-.205);monsterVisual.add(monsterJaw);
+for(const side of [-1,1]){
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,6,5),monsterEyeMat);
+  eye.position.set(side*.105,1.99,-.205);monsterVisual.add(eye);
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.075,.88,3,5),monsterSkin);
+  arm.position.set(side*.37,.98,-.005);arm.rotation.z=side*.13;monsterVisual.add(arm);
+  const hand=new THREE.Mesh(new THREE.SphereGeometry(.085,6,5),monsterSkin);
+  hand.scale.set(.8,1.35,.7);hand.position.set(side*.40,.43,-.015);monsterVisual.add(hand);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.58,3,5),monsterSkin);
+  leg.position.set(side*.15,.40,.015);monsterVisual.add(leg);
+}
+scene.add(monster);monster.visible=false;
+const monsterCell={x:mazeSize-1,z:0};
+let monsterTargetCell={x:mazeSize-1,z:0}, monsterPreviousCell=null;
+function cellWorldX(x){return (x-mazeSize/2+.5)*cell;}
+function cellWorldZ(z){return (z-mazeSize/2+.5)*cell;}
+monster.position.set(cellWorldX(monsterCell.x),0,cellWorldZ(monsterCell.z));
+
+let monsterAudioContext=null, nextMonsterNoiseAt=0;
+function startMonsterAudio(){
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)return;
+  try{
+    if(!monsterAudioContext)monsterAudioContext=new AudioCtx();
+    if(monsterAudioContext.state==='suspended')monsterAudioContext.resume().catch(()=>{});
+    nextMonsterNoiseAt=performance.now()+4500+Math.random()*5000;
+  }catch(e){/* Audio is optional; the creature still roams without it. */}
+}
+function chooseMonsterTarget(){
+  let choices=dirs.map(d=>({x:monsterCell.x+d[0],z:monsterCell.z+d[1],wall:d[2]}))
+    .filter(n=>n.x>=0&&n.z>=0&&n.x<mazeSize&&n.z<mazeSize&&!grid[monsterCell.z][monsterCell.x].w[n.wall]);
+  if(choices.length>1&&monsterPreviousCell){
+    const forward=choices.filter(n=>n.x!==monsterPreviousCell.x||n.z!==monsterPreviousCell.z);
+    if(forward.length)choices=forward;
+  }
+  if(!choices.length){monsterTargetCell={x:monsterCell.x,z:monsterCell.z};return;}
+  const next=choices[Math.floor(Math.random()*choices.length)];
+  monsterPreviousCell={x:monsterCell.x,z:monsterCell.z};
+  monsterTargetCell={x:next.x,z:next.z};
+}
+chooseMonsterTarget();
+function playMonsterNoise(){
+  if(!monsterAudioContext||monsterAudioContext.state!=='running')return;
+  const ctx=monsterAudioContext, now=ctx.currentTime;
+  const dx=monster.position.x-rig.position.x,dz=monster.position.z-rig.position.z;
+  const distance=Math.hypot(dx,dz);
+  const panner=ctx.createPanner();
+  panner.panningModel='HRTF';panner.distanceModel='inverse';
+  panner.refDistance=4;panner.maxDistance=55;panner.rolloffFactor=.7;
+  if(panner.positionX){panner.positionX.value=monster.position.x;panner.positionY.value=1.25;panner.positionZ.value=monster.position.z;}
+  else panner.setPosition(monster.position.x,1.25,monster.position.z);
+  const envelope=ctx.createGain();
+  const peak=.22*Math.max(.12,Math.exp(-distance/32));
+  envelope.gain.setValueAtTime(.0001,now);
+  envelope.gain.exponentialRampToValueAtTime(peak,now+.20);
+  envelope.gain.setValueAtTime(peak*.78,now+1.15);
+  envelope.gain.exponentialRampToValueAtTime(.0001,now+2.8);
+  const filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=430+Math.random()*180;
+  const growl1=ctx.createOscillator(),growl2=ctx.createOscillator();
+  growl1.type='sawtooth';growl2.type='triangle';
+  growl1.frequency.setValueAtTime(54+Math.random()*13,now);
+  growl1.frequency.exponentialRampToValueAtTime(29+Math.random()*7,now+2.5);
+  growl2.frequency.setValueAtTime(92+Math.random()*15,now);
+  growl2.frequency.exponentialRampToValueAtTime(51+Math.random()*8,now+2.6);
+  const mix=ctx.createGain();mix.gain.value=.32;
+  growl1.connect(mix);growl2.connect(mix);mix.connect(filter);filter.connect(panner);panner.connect(envelope);envelope.connect(ctx.destination);
+  growl1.start(now);growl2.start(now);growl1.stop(now+2.82);growl2.stop(now+2.82);
+  growl1.onended=()=>{try{mix.disconnect();filter.disconnect();panner.disconnect();envelope.disconnect();}catch(e){}};
+}
+function updateMonster(dt,xrFrame){
+  const tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z);
+  const dx=tx-monster.position.x,dz=tz-monster.position.z,dist=Math.hypot(dx,dz);
+  if(dist<.09){
+    monsterCell.x=monsterTargetCell.x;monsterCell.z=monsterTargetCell.z;
+    chooseMonsterTarget();
+  }else{
+    const speed=1.05,step=Math.min(dist,speed*dt);
+    monster.position.x+=dx/dist*step;monster.position.z+=dz/dist*step;
+    monster.rotation.y=Math.atan2(-dx,-dz);
+  }
+  const t=performance.now()*.006;
+  monsterVisual.position.y=.025+Math.abs(Math.sin(t))*.045;
+  monsterVisual.rotation.z=Math.sin(t*.65)*.018;
+  if(monsterAudioContext){
+    const listener=monsterAudioContext.listener;
+    let lx=rig.position.x,ly=1.52,lz=rig.position.z;
+    let forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+    if(renderer.xr.isPresenting&&xrFrame){
+      const pose=xrFrame.getViewerPose(renderer.xr.getReferenceSpace());
+      if(pose){
+        lx+=pose.transform.position.x;lz+=pose.transform.position.z;
+        const q=pose.transform.orientation;
+        forward.set(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));
+      }
+    }
+    if(listener.positionX){listener.positionX.value=lx;listener.positionY.value=ly;listener.positionZ.value=lz;listener.forwardX.value=forward.x;listener.forwardY.value=forward.y;listener.forwardZ.value=forward.z;listener.upX.value=0;listener.upY.value=1;listener.upZ.value=0;}
+    else{listener.setPosition(lx,ly,lz);listener.setOrientation(forward.x,forward.y,forward.z,0,1,0);}
+    if(performance.now()>nextMonsterNoiseAt){
+      playMonsterNoise();
+      nextMonsterNoiseAt=performance.now()+8500+Math.random()*9000;
+    }
+  }
+}
+
+
 // Low-poly avatar exists only in the mobile test. VR and desktop first-person views are unchanged.
 const mobileAvatar=new THREE.Group(); rig.add(mobileAvatar);
 const avatarMat=mat(0x4a5144), skinMat=mat(0xc9a77e), shirtMat=mat(0x343d32);
@@ -133,13 +253,14 @@ const hands=[], handAnchors=[null,null], wasTouching=[false,false];
 for(let i=0;i<2;i++){const c=controllers[i];rig.add(c);const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));c.add(hand);hands.push(hand);const grip=renderer.xr.getControllerGrip(i);rig.add(grip);}
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 const playerRadius=.22, virtualHeadHeight=1.62, ceilingHeadClearance=.28;
+const TARGET_VR_EYE_HEIGHT=1.52;
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
 function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
 reset();
-function startDesktop(){started=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;mobileAvatar.visible=false;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,.55,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,0,0);}renderer.setAnimationLoop(animate);}
+function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;mobileAvatar.visible=false;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,.55,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,0,0);}renderer.setAnimationLoop(animate);}
 document.getElementById('start').addEventListener('click',startDesktop);
-document.getElementById('enter').addEventListener('click',async()=>{try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';return;}const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor','hand-tracking']});await renderer.xr.setSession(session);started=true;desktop=false;mobileTest=false;mobileAvatar.visible=false;camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push your hands against the floor or walls to move.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;}});
+document.getElementById('enter').addEventListener('click',async()=>{startMonsterAudio();try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';return;}const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor','hand-tracking']});await renderer.xr.setSession(session);started=true;desktop=false;mobileTest=false;mobileAvatar.visible=false;monster.visible=true;camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push your hands against the floor or walls to move.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;}});
 document.getElementById('reset').addEventListener('click',reset);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='Escape')document.getElementById('panel').classList.remove('hidden');});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -149,11 +270,15 @@ renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===activeTouc
 renderer.domElement.addEventListener('pointercancel',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
 renderer.domElement.addEventListener('pointermove',e=>{if(mobileTest&&e.pointerId===activeTouchId){const now=performance.now(), elapsed=Math.max(.008,(now-previousTouchTime)/1000), dy=e.clientY-previousTouchY;handVelocityY=THREE.MathUtils.clamp((-dy/elapsed)*.0105,-8.5,8.5);previousTouchY=e.clientY;previousTouchTime=now;return;}if(!desktop||!dragging)return;yaw-=(e.clientX-lastX)*.004;pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY;});
 function handTouches(p){if(p.y<.20)return true;for(const b of wallBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}return false;}
-function animate(){
+function animate(timestamp,xrFrame){
  const dt=Math.min(clock.getDelta(),.035);
-  // Keep the VR rig anchored to the floor. Never apply a per-frame headset-height correction:
-  // using the XR camera's world position here can feed the rig's own offset back into itself and launch the player upward.
-  if(renderer.xr.isPresenting)rig.position.y=0;
+  // Correct only against the XRFrame's floor-relative pose, never against the scene camera's world matrix.
+  // This keeps the virtual eye point at 1.52m whether you crouch or stand, without feeding rig movement back into itself.
+  if(renderer.xr.isPresenting&&xrFrame){
+    const pose=xrFrame.getViewerPose(renderer.xr.getReferenceSpace());
+    if(pose)rig.position.y=TARGET_VR_EYE_HEIGHT-pose.transform.position.y;
+  }
+  if(started){if(!monster.visible)monster.visible=true;updateMonster(dt,xrFrame);}
  if(mobileTest&&started){
    // Swipe velocity drives the test hand; a quicker swipe gives a faster vertical hand motion.
    handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.005,1.8);
