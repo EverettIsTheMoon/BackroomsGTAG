@@ -151,7 +151,9 @@ renderer.domElement.addEventListener('pointermove',e=>{if(mobileTest&&e.pointerI
 function handTouches(p){if(p.y<.20)return true;for(const b of wallBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}return false;}
 function animate(){
  const dt=Math.min(clock.getDelta(),.035);
- if(renderer.xr.isPresenting){const desiredRigY=virtualHeadHeight-camera.position.y;const ceilingSafeRigY=wallH-.22-camera.position.y;rig.position.y=Math.min(desiredRigY,ceilingSafeRigY);}
+  // In VR, keep the rig origin on the floor. The headset's tracked pose already supplies real head height.
+  // Do not add virtualHeadHeight to the rig or the player will appear much too high.
+  if(renderer.xr.isPresenting)rig.position.y=0;
  if(mobileTest&&started){
    // Swipe velocity drives the test hand; a quicker swipe gives a faster vertical hand motion.
    handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.005,1.8);
