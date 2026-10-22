@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { runInNewContext } from 'node:vm';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -59,6 +60,60 @@ for (const marker of [
 ]) {
   check('required feature: ' + marker, html.includes(marker));
 }
+
+// Execute the exact maze-generation block (without Three.js/DOM) repeatedly to catch graph regressions.
+const generationStart = html.indexOf('const grid=Array.from');
+const generationEnd = html.indexOf('const wallGeo=', generationStart);
+let mazeTrialsPassed = generationStart >= 0 && generationEnd > generationStart;
+let mazeTrialDetail = '';
+if (mazeTrialsPassed) {
+  const generationCode = html.slice(generationStart, generationEnd) +
+    '\\nglobalThis.__grid = grid; globalThis.__dirs = dirs; globalThis.__wideRooms = wideRooms;';
+  for (let trial = 0; trial < 50; trial++) {
+    try {
+      const context = { mazeSize: 13 };
+      runInNewContext(generationCode, context);
+      const grid = context.__grid;
+      const dirs = context.__dirs;
+      const queue = [[0, 0]];
+      const reached = new Set(['0,0']);
+      for (let head = 0; head < queue.length; head++) {
+        const [x, z] = queue[head];
+        for (const d of dirs) {
+          const nx = x + d[0], nz = z + d[1];
+          if (nx < 0 || nz < 0 || nx >= 13 || nz >= 13) continue;
+          if (grid[z][x].w[d[2]]) continue;
+          const key = nx + ',' + nz;
+          if (!reached.has(key)) { reached.add(key); queue.push([nx, nz]); }
+        }
+      }
+      if (reached.size !== 169) {
+        mazeTrialsPassed = false;
+        mazeTrialDetail = 'trial ' + (trial + 1) + ' reached ' + reached.size + '/169 cells';
+        break;
+      }
+      for (const room of context.__wideRooms) {
+        for (const x of [room.x, room.x + 1]) {
+          if (grid[room.z][x].w[1] || grid[room.z + 1][x].w[3]) {
+            mazeTrialsPassed = false; mazeTrialDetail = 'wide room missing a Z opening'; break;
+          }
+        }
+        for (const z of [room.z, room.z + 1]) {
+          if (grid[z][room.x].w[2] || grid[z][room.x + 1].w[0]) {
+            mazeTrialsPassed = false; mazeTrialDetail = 'wide room missing an X opening'; break;
+          }
+        }
+        if (!mazeTrialsPassed) break;
+      }
+      if (!mazeTrialsPassed) break;
+    } catch (error) {
+      mazeTrialsPassed = false;
+      mazeTrialDetail = String(error);
+      break;
+    }
+  }
+}
+check('50 generated maze layouts stay connected and widened rooms are fully open', mazeTrialsPassed, mazeTrialDetail);
 
 if (moduleScripts.length === 1) {
   const tempPath = join(tmpdir(), 'backroomsgtag-module-check-' + process.pid + '.mjs');
