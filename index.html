@@ -22,6 +22,9 @@ import * as THREE from 'three';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb9ad73);
 scene.fog = new THREE.FogExp2(0xb9ad73, 0.027);
+// Broad, cheap lighting is much friendlier to standalone VR than dozens of point lights.
+scene.add(new THREE.HemisphereLight(0xffe8b0, 0x393522, 1.15));
+scene.add(new THREE.AmbientLight(0xffffff, 0.18));
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 90);
 const rig = new THREE.Group(); rig.add(camera); scene.add(rig);
 const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
@@ -60,7 +63,7 @@ const lightGeo=new THREE.BoxGeometry(1.15,.035,.42);
 for(let z=0;z<mazeSize;z+=2)for(let x=0;x<mazeSize;x+=2){
  const lx=(x-mazeSize/2+.5)*cell,lz=(z-mazeSize/2+.5)*cell;
  const panel=new THREE.Mesh(lightGeo,lightMat);panel.position.set(lx,wallH-.035,lz);scene.add(panel);
- const lamp=new THREE.PointLight(0xffe9a8,.48,7,2);lamp.position.set(lx,wallH-.18,lz);scene.add(lamp);
+
 }
 const baseboardGeo=new THREE.BoxGeometry(cell,.12,.08);
 for(let i=0;i<mazeSize;i++){const p=(i-mazeSize/2+.5)*cell;const a=new THREE.Mesh(baseboardGeo,trimMat);a.position.set(p,.07,-half);scene.add(a);}
