@@ -26,12 +26,19 @@ The pictures were used as visual references only; their pixels are not bundled i
 6. **Height handling:** VR eye height is normalized against the XR frame's viewer pose in the animation callback. The target is 1.52 m, slightly lower than the previous 1.58 m. This makes vertical head movements intentionally invisible in-game; it cannot be judged conclusively without testing on the target headset.
 7. **Silent runtime failures:** added an on-screen message for script errors and unhandled promise rejections so failures are easier to report rather than leaving the game apparently stuck.
 8. **Documentation drift:** README previously claimed the monster, ambience and related features did not exist. It now describes actual current features and explicitly lists prototype limitations.
+9. **Desktop camera began at floor level:** desktop startup set the camera to Y=0, which would show the scene from the floor. It now starts at 1.52 m, matching the virtual VR eye-height target.
+10. **Unused avatar geometry:** an entire player avatar was constructed but always hidden and did not contribute to first-person play. Removed the meshes to save memory and startup work.
+11. **Controller pose choice:** movement was reading the controller target-ray pose, which is designed for pointing, rather than the physical grip pose. Switched movement/hand markers to grip-space objects and track connected/disconnected state, preventing a missing controller from being treated as a hand touching the floor.
+12. **VR session feature consistency:** floor-height normalization depends on a floor-relative reference space, but the session requested that feature only as optional. It is now requested as required; VR startup fails with an error message instead of proceeding without the floor-space assumption. Removed the unused hand-tracking feature request because the game uses controller grip poses.
+13. **VR session exit:** ending the headset session now resets movement, hides the roaming entity, suspends synthesized ambience, and restores the menu.
+14. **Blank warning placard:** a green blank plane was being rendered as the distant sign. It now carries a locally generated "NO EXIT" texture.
+15. **Dependency age:** the project still pins Three.js 0.161.0, while npm lists 0.186.1 as the current release (checked 2026-10-22). It was not blindly upgraded: the official migration guide recommends migrating in increments of ten releases, and a multi-release upgrade without a real Quest run would add a new source of runtime risk. The pin is now documented as a follow-up task for a staged, headset-tested update.
 
 ## Checks run
 
 - Parsed the full module script with a JavaScript syntax check after stripping its single top-level Three.js import: **PASS**.
 - Verified in the latest committed source that the old 220-mesh floor-speck loop and misoriented random patch code are gone: **PASS**.
-- Verified that the source contains procedural wallpaper/carpet/ceiling textures, instanced wall and light meshes, corrected outlet orientation, the XR viewer-pose height correction, the ambient hum and the roaming creature: **PASS**.
+- Verified that the source contains procedural wallpaper/carpet/ceiling textures, instanced wall and light meshes, corrected outlet orientation, the XR viewer-pose height correction, grip-space controller locomotion with connection-state guards, session-end cleanup, the ambient hum and the roaming creature: **PASS**.
 - Added a Node-based static smoke check to the Pages workflow. Every deployment checks for the required UI, core feature markers and valid module syntax before uploading the site. The latest run status should be checked in the repository Actions tab; these checks do not simulate a headset.
 - **Not testable here:** actual Quest 1/Quest 2 frame rate, controller contact behavior, perceived floor alignment, headset audio volume/spatialization, and visual appearance inside the headset. Static source checks do not substitute for runtime testing.
 
