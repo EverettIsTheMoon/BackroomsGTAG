@@ -43,6 +43,8 @@ for (const marker of [
   "session.addEventListener('end'",
   'getViewerPose(renderer.xr.getReferenceSpace())',
   'new THREE.InstancedMesh(wallGeo',
+  'new THREE.InstancedMesh(ceilingTileGeo',
+  'const ceilingGridCount=Math.ceil(mazeSize*cell/.6)',
   'const wideRooms=[]',
   'new THREE.InstancedMesh(pillarGeo',
   'for(const b of roomPillarBoxes)',
