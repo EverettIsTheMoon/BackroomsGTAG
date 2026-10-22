@@ -54,6 +54,7 @@ for (const marker of [
   'wallpaperTexture=makeCanvasTexture',
   'carpetTexture=makeCanvasTexture',
   'ceilingTexture=makeCanvasTexture',
+  'const monsterCell={x:mazeSize-1,z:mazeSize-1}',
   'function updateMonster(dt,xrFrame)',
   'for(const [frequency,level] of [[119.8,.55],[239.6,.22],[359.4,.08]])',
   'new THREE.PointLight(0xffe8ad,.72,16,2)',
