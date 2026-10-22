@@ -1,20 +1,31 @@
 # BackroomsGTAG
 
-A lightweight WebXR Backrooms horror prototype with Gorilla Tag-inspired arm-swing locomotion.
+A lightweight WebXR horror-game prototype inspired by Gorilla Tag locomotion.
 
 ## Play
-Enable GitHub Pages for the `main` branch (root), then open the Pages URL in Meta Quest Browser. Press **Enter VR** to enter immersive mode.
+1. Enable GitHub Pages in **Settings → Pages** using the `main` branch and `/(root)`.
+2. Open the Pages URL in Meta Quest Browser.
+3. Choose **Enter VR**. If VR is unavailable, use **Play Without VR** to test the desktop preview.
 
-## Current prototype
-- WebXR VR entry and desktop/mobile fallback preview
-- Controller-driven hand locomotion: push against walls/floor to move
-- Fixed virtual head height so physically crouching/standing does not change the character's in-game height
-- Procedural yellow Backrooms maze, fluorescent lights, fog, and ambient hum
-- Lightweight collision checks and no physics engine dependency
+## Implemented so far
+- WebXR immersive-VR entry using Three.js
+- Procedurally generated 13×13 maze with yellow walls, ceiling, floor, basic fog, and simple fluorescent-style light panels
+- Basic controller contact/hand-anchor movement prototype
+- Fixed virtual head height intended to prevent physical crouching/standing from changing in-game height
+- Desktop WASD movement and drag-to-look preview
+- Basic wall and outer-boundary checks, plus a reset button
+
+## Known limitations
+- This is a foundation prototype, not a finished game.
+- No monster AI, objectives, multiplayer, jump/launch system, or actual sound/ambient hum is implemented yet.
+- Locomotion and collision are approximate and still need hands-on Quest testing; floor/wall contact detection is intentionally simple.
+- No custom hand models or hand-tracking gesture controls yet; the current movement uses controller poses.
+- Three.js is loaded from jsDelivr, so the page needs an internet connection.
+- GitHub Pages must be enabled before the play URL will work.
 
 ## Controls
-- VR: grab/push against surfaces with either controller; use both hands if available.
-- Desktop preview: WASD move, mouse look, click-drag to look around.
-- Reset button returns to the start.
+- **VR:** move your tracked controllers against surfaces to push away; either controller can contribute.
+- **Desktop:** WASD to move, drag the mouse on the game view to look around.
+- **Reset:** returns to the starting position.
 
-This is an early prototype. WebXR requires a secure context (GitHub Pages HTTPS) and a compatible browser/headset.
+This project uses Three.js and WebXR. WebXR requires HTTPS and a compatible browser/headset.
