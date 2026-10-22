@@ -116,7 +116,7 @@ const ceilingTexture=makeCanvasTexture(128,(ctx,size,rng)=>{
   ctx.fillStyle='rgba(56,55,45,0.48)';ctx.fillRect(0,0,size,2);ctx.fillRect(0,0,2,size);
   ctx.fillStyle='rgba(235,230,207,0.45)';ctx.fillRect(3,3,size-6,1);ctx.fillRect(3,3,1,size-6);
 },307);
-ceilingTexture.repeat.set(mazeSize*cell/.6,mazeSize*cell/.6);
+ceilingTexture.repeat.set(1,1);
 const floorStainTexture=makeCanvasTexture(128,(ctx,size,rng)=>{
   ctx.clearRect(0,0,size,size);
   for(let i=0;i<8;i++){
@@ -146,8 +146,9 @@ const trimMat=mat(0x756b45,.95);
 const lightMat=new THREE.MeshBasicMaterial({color:0xffffff});
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(mazeSize*cell,mazeSize*cell),floorMat);
 floor.rotation.x=-Math.PI/2;floor.position.y=0;scene.add(floor);
-const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(mazeSize*cell,mazeSize*cell),ceilingMat);
-ceiling.rotation.x=Math.PI/2;ceiling.position.y=wallH;scene.add(ceiling);
+// A matte backing sits just above the visible tiles; it only shows through their fine joints.
+const ceilingBacking=new THREE.Mesh(new THREE.PlaneGeometry(mazeSize*cell,mazeSize*cell),new THREE.MeshBasicMaterial({color:0x777361}));
+ceilingBacking.rotation.x=Math.PI/2;ceilingBacking.position.y=wallH+.035;scene.add(ceilingBacking);
 const grid=Array.from({length:mazeSize},()=>Array.from({length:mazeSize},()=>({seen:false,w:[true,true,true,true]})));
 const dirs=[[-1,0,0,2],[0,1,1,3],[1,0,2,0],[0,-1,3,1]];
 const stack=[[0,0]];grid[0][0].seen=true;
@@ -205,6 +206,19 @@ for(let z=0;z<mazeSize;z+=2)for(let x=0;x<mazeSize;x+=2){
   const lx=(x-mazeSize/2+.5)*cell,lz=(z-mazeSize/2+.5)*cell;
   fixtureCoords.push({x:lx,z:lz,index:fixtureCoords.length});
 }
+// Individually instanced mineral-fiber tiles add real grid relief without thousands of draw calls.
+const ceilingGridCount=Math.ceil(mazeSize*cell/.6);
+const ceilingTileSize=(mazeSize*cell)/ceilingGridCount;
+const ceilingTileGeo=new THREE.BoxGeometry(ceilingTileSize-.008,.035,ceilingTileSize-.008);
+const ceilingTiles=new THREE.InstancedMesh(ceilingTileGeo,ceilingMat,ceilingGridCount*ceilingGridCount);
+let ceilingTileIndex=0;
+for(let tz=0;tz<ceilingGridCount;tz++)for(let tx=0;tx<ceilingGridCount;tx++){
+  wallObject.position.set(-half+(tx+.5)*ceilingTileSize,wallH-.0175,-half+(tz+.5)*ceilingTileSize);
+  wallObject.rotation.set(0,0,0);wallObject.scale.set(1,1,1);wallObject.updateMatrix();
+  ceilingTiles.setMatrixAt(ceilingTileIndex++,wallObject.matrix);
+}
+ceilingTiles.instanceMatrix.needsUpdate=true;ceilingTiles.computeBoundingSphere();scene.add(ceilingTiles);
+
 const lightMesh=new THREE.InstancedMesh(lightGeo,lightMat,fixtureCoords.length);
 for(let i=0;i<fixtureCoords.length;i++){
   const f=fixtureCoords[i];wallObject.position.set(f.x,wallH-.035,f.z);
