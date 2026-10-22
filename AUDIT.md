@@ -37,6 +37,9 @@ The pictures were used as visual references only; their pixels are not bundled i
 17. **Ceiling scale:** the old 3.2 m wall height made the main rooms too tall for the classic low drop-ceiling look. It is now 2.65 m and the wall-mounted sign was lowered to sit below it; the mobile test's head-clearance clamp uses the same ceiling constant.
 18. **Dependency age:** the project still pins Three.js 0.161.0, while npm lists 0.186.1 as the current release (checked 2026-10-22). It was not blindly upgraded: the official migration guide recommends migrating in increments of ten releases, and a multi-release upgrade without a real Quest run would add a new source of runtime risk. The pin is now documented as a follow-up task for a staged, headset-tested update.
 
+19. **Room variation:** a strict grid of corridors lacked the broad, column-supported rooms visible in the source reference imagery. Some 2×2-cell blocks now open into 8 m × 8 m rooms. Each widened room gets a locally textured square support column and plinth, with collision shapes included for locomotion and hand contact.
+20. **Static checks expanded:** the deploy-time smoke test now also checks for room widening, support-column collision and the camera-only head-height correction.
+
 ## Checks run
 
 - Parsed the full module script with a JavaScript syntax check after stripping its single top-level Three.js import: **PASS**.
