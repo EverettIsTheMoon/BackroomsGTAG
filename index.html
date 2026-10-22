@@ -151,9 +151,9 @@ renderer.domElement.addEventListener('pointermove',e=>{if(mobileTest&&e.pointerI
 function handTouches(p){if(p.y<.20)return true;for(const b of wallBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}return false;}
 function animate(){
  const dt=Math.min(clock.getDelta(),.035);
-  // Keep the virtual viewpoint at a steady, slightly-lowered height regardless of physical crouching/standing.
-  // Use the tracked XR camera's world position, not the untracked base camera's local Y value.
-  if(renderer.xr.isPresenting){const xrHead=renderer.xr.getCamera(camera);const headWorld=new THREE.Vector3();xrHead.getWorldPosition(headWorld);rig.position.y+=1.58-headWorld.y;}
+  // Keep the VR rig anchored to the floor. Never apply a per-frame headset-height correction:
+  // using the XR camera's world position here can feed the rig's own offset back into itself and launch the player upward.
+  if(renderer.xr.isPresenting)rig.position.y=0;
  if(mobileTest&&started){
    // Swipe velocity drives the test hand; a quicker swipe gives a faster vertical hand motion.
    handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.005,1.8);
