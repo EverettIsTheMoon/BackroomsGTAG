@@ -78,7 +78,7 @@ for(let i=0;i<2;i++){const c=controllers[i];rig.add(c);const hand=new THREE.Mesh
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 const playerRadius=.22, virtualHeadHeight=1.62;
 let handY=1.15, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0;
-function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-b.minZ<b.maxZ)return true;}return false;}
+function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
 function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=1.15;handVelocityY=0;testHand.position.y=handY;}
 reset();
 function startDesktop(){started=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;mobileAvatar.visible=mobileTest;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down anywhere to raise/lower the hand; swipe speed controls hand speed.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,2.6,5.5);camera.lookAt(0,1.05,0);camera.rotation.order='YXZ';}else{camera.position.set(0,0,0);}renderer.setAnimationLoop(animate);}
