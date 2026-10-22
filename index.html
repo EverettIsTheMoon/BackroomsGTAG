@@ -53,6 +53,62 @@ const lightGeo=new THREE.BoxGeometry(1.15,.035,.42);
 for(let z=0;z<mazeSize;z+=2)for(let x=0;x<mazeSize;x+=2){const lx=(x-mazeSize/2+.5)*cell,lz=(z-mazeSize/2+.5)*cell;const panel=new THREE.Mesh(lightGeo,lightMat);panel.position.set(lx,wallH-.035,lz);scene.add(panel);}
 const baseboardGeo=new THREE.BoxGeometry(cell,.12,.08);
 for(let i=0;i<mazeSize;i++){const p=(i-mazeSize/2+.5)*cell;const a=new THREE.Mesh(baseboardGeo,trimMat);a.position.set(p,.07,-half);scene.add(a);}
+
+// Subtle Backrooms surface detail: wall seams, worn patches, floor speckle and rare electrical outlets.
+// Keep geometry modest for mobile/Quest performance.
+const seamMat=new THREE.MeshStandardMaterial({color:0x8d8150,roughness:1});
+const stainMats=[mat(0xb0a36b),mat(0xa99b60),mat(0x9e925e)];
+const floorSpeckMats=[mat(0x625c3d),mat(0x898052),mat(0x9b9060)];
+const seamGeo=new THREE.BoxGeometry(.018,wallH-.12,.012);
+const patchGeo=new THREE.PlaneGeometry(.22,.34);
+const floorSpeckGeo=new THREE.CircleGeometry(.025,5);
+// Light vertical panel seams along selected walls, positioned on wall faces.
+for(const b of wallBoxes){
+  if(Math.random()<.42){
+    const seam=new THREE.Mesh(seamGeo,seamMat);
+    seam.position.set((b.minX+b.maxX)/2,wallH/2,(b.minZ+b.maxZ)/2);
+    seam.position.x += (Math.random()-.5)*.12;
+    scene.add(seam);
+  }
+  if(Math.random()<.20){
+    const patch=new THREE.Mesh(patchGeo,stainMats[Math.floor(Math.random()*stainMats.length)]);
+    patch.position.set((b.minX+b.maxX)/2+(Math.random()-.5)*.10,.7+Math.random()*1.7,(b.minZ+b.maxZ)/2);
+    patch.rotation.y=Math.random()<.5?0:Math.PI/2;
+    scene.add(patch);
+  }
+}
+// Sparse, darkened floor wear marks.
+for(let i=0;i<220;i++){
+  const speck=new THREE.Mesh(floorSpeckGeo,floorSpeckMats[Math.floor(Math.random()*floorSpeckMats.length)]);
+  speck.rotation.x=-Math.PI/2;
+  speck.rotation.z=Math.random()*Math.PI;
+  speck.position.set((Math.random()-.5)*mazeSize*cell,.008,(Math.random()-.5)*mazeSize*cell);
+  const s=.45+Math.random()*1.7;speck.scale.set(s,s,1);scene.add(speck);
+}
+// Rare outlets: only a small chance per wall segment; mounted just above the baseboard.
+const outletPlateMat=new THREE.MeshStandardMaterial({color:0xd5cba8,roughness:.85});
+const outletSlotMat=new THREE.MeshBasicMaterial({color:0x302f26});
+const outletPlateGeo=new THREE.BoxGeometry(.18,.24,.035);
+const outletSlotGeo=new THREE.BoxGeometry(.025,.07,.012);
+let outletCount=0;
+for(const b of wallBoxes){
+  if(Math.random()>.075)continue;
+  if(outletCount>=10)break;
+  const cx=(b.minX+b.maxX)/2, cz=(b.minZ+b.maxZ)/2;
+  const alongX=(b.maxX-b.minX)>(b.maxZ-b.minZ);
+  const plate=new THREE.Mesh(outletPlateGeo,outletPlateMat);
+  plate.position.set(cx,.32,cz);
+  if(alongX){plate.rotation.y=Math.PI/2;plate.position.z+=.105;}
+  else{plate.position.x+=.105;}
+  scene.add(plate);
+  for(const side of [-1,1]){
+    const slot=new THREE.Mesh(outletSlotGeo,outletSlotMat);
+    slot.position.set(plate.position.x+(alongX?0:side*.035),.33,plate.position.z+(alongX?side*.035:0));
+    slot.rotation.y=plate.rotation.y;scene.add(slot);
+  }
+  outletCount++;
+}
+
 const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.5,-half+1);scene.add(sign);
 const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({color:0x8bd477}));signText.position.set(0,2.5,-half+.94);scene.add(signText);
 
