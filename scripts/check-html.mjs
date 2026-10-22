@@ -31,6 +31,8 @@ for (const marker of [
   'renderer.xr.getControllerGrip(0)',
   'controllerConnected[i]',
   "fillText('NO EXIT'",
+  'const signZ=-half+.115',
+  'session.end().catch(()=>{})',
   "session.addEventListener('end'",
   'getViewerPose(renderer.xr.getReferenceSpace())',
   'new THREE.InstancedMesh(wallGeo',
