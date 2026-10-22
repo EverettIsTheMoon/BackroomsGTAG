@@ -50,7 +50,7 @@ document.body.appendChild(renderer.domElement);
 
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
 const wallBoxes=[];
-const mazeSize=13, cell=4, wallH=3.2, half=mazeSize*cell/2;
+const mazeSize=13, cell=4, wallH=2.65, half=mazeSize*cell/2;
 
 // Small, locally generated textures keep the game self-contained and avoid slow external image downloads.
 // They are deliberately subtle: faded patterned wallpaper, looped brown carpet, and porous acoustic ceiling tiles.
@@ -283,14 +283,14 @@ outletPlates.computeBoundingSphere();outletSlots.computeBoundingSphere();
 if(outletPlacements.length){scene.add(outletPlates);scene.add(outletSlots);}
 
 const signZ=-half+.115;
-const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.5,signZ);scene.add(sign);
+const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.22,signZ);scene.add(sign);
 const signTexture=makeCanvasTexture(256,(ctx,size)=>{
   ctx.fillStyle='#182016';ctx.fillRect(0,0,size,size);
   ctx.strokeStyle='#89946a';ctx.lineWidth=5;ctx.strokeRect(8,8,size-16,size-16);
   ctx.fillStyle='#d9d2a0';ctx.font='bold 42px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('NO EXIT',size/2,size/2+1);
   ctx.fillStyle='rgba(160,155,105,.25)';for(let y=18;y<size;y+=37)ctx.fillRect(12,y,size-24,1);
 },701);
-const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({map:signTexture}));signText.position.set(0,2.5,signZ+.041);scene.add(signText);
+const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({map:signTexture}));signText.position.set(0,2.22,signZ+.041);scene.add(signText);
 
 // A low-poly roaming entity: long limbs, a narrow head and small emissive eyes.
 // Its route follows the maze's actual open cell connections, so it stays in corridors.
