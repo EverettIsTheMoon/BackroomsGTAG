@@ -278,7 +278,13 @@ outletPlates.computeBoundingSphere();outletSlots.computeBoundingSphere();
 if(outletPlacements.length){scene.add(outletPlates);scene.add(outletSlots);}
 
 const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.5,-half+1);scene.add(sign);
-const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({color:0x8bd477}));signText.position.set(0,2.5,-half+.94);scene.add(signText);
+const signTexture=makeCanvasTexture(256,(ctx,size)=>{
+  ctx.fillStyle='#182016';ctx.fillRect(0,0,size,size);
+  ctx.strokeStyle='#89946a';ctx.lineWidth=5;ctx.strokeRect(8,8,size-16,size-16);
+  ctx.fillStyle='#d9d2a0';ctx.font='bold 42px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('NO EXIT',size/2,size/2+1);
+  ctx.fillStyle='rgba(160,155,105,.25)';for(let y=18;y<size;y+=37)ctx.fillRect(12,y,size-24,1);
+},701);
+const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({map:signTexture}));signText.position.set(0,2.5,-half+.94);scene.add(signText);
 
 // A low-poly roaming entity: long limbs, a narrow head and small emissive eyes.
 // Its route follows the maze's actual open cell connections, so it stays in corridors.
@@ -419,9 +425,15 @@ for(let i=0;i<3;i++){const f=new THREE.Mesh(fingerGeo,skinMat);f.position.set((i
 testHand.position.set(.32,1.15,-.58);
 
 
-const controllers=[renderer.xr.getController(0),renderer.xr.getController(1)];
-const hands=[], handAnchors=[null,null], wasTouching=[false,false];
-for(let i=0;i<2;i++){const c=controllers[i];rig.add(c);const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));c.add(hand);hands.push(hand);const grip=renderer.xr.getControllerGrip(i);rig.add(grip);}
+const controllers=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
+const hands=[], handAnchors=[null,null], wasTouching=[false,false], controllerConnected=[false,false];
+for(let i=0;i<2;i++){
+ const c=controllers[i];rig.add(c);
+ c.addEventListener('connected',()=>{controllerConnected[i]=true;});
+ c.addEventListener('disconnected',()=>{controllerConnected[i]=false;handAnchors[i]=null;wasTouching[i]=false;});
+ const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));
+ c.add(hand);hands.push(hand);
+}
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 const playerRadius=.22, ceilingHeadClearance=.28;
 const TARGET_VR_EYE_HEIGHT=1.52;
@@ -431,7 +443,7 @@ function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0
 reset();
 function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,.55,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,1.52,0);}renderer.setAnimationLoop(animate);}
 document.getElementById('start').addEventListener('click',startDesktop);
-document.getElementById('enter').addEventListener('click',async()=>{startMonsterAudio();try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';return;}const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor','hand-tracking']});await renderer.xr.setSession(session);
+document.getElementById('enter').addEventListener('click',async()=>{startMonsterAudio();try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});return;}const session=await navigator.xr.requestSession('immersive-vr',{requiredFeatures:['local-floor'],optionalFeatures:['bounded-floor']});await renderer.xr.setSession(session);
 session.addEventListener('end',()=>{
   started=false;desktop=false;mobileTest=false;monster.visible=false;
   reset();
@@ -506,7 +518,10 @@ function animate(timestamp,xrFrame){
  }else if(desktop&&started){camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
  else if(renderer.xr.isPresenting&&started){
    const correction=new THREE.Vector3();let anyTouch=false;
-   for(let i=0;i<controllers.length;i++){const c=controllers[i],p=new THREE.Vector3();c.getWorldPosition(p);const touching=handTouches(p);anyTouch=anyTouch||touching;if(touching&&!wasTouching[i])handAnchors[i]=p.clone();if(touching&&handAnchors[i]){const delta=handAnchors[i].clone().sub(p);delta.y=0;if(delta.lengthSq()<1.0)correction.add(delta);else handAnchors[i]=p.clone();}if(!touching)handAnchors[i]=null;wasTouching[i]=touching;}
+   for(let i=0;i<controllers.length;i++){
+     if(!controllerConnected[i]){handAnchors[i]=null;wasTouching[i]=false;continue;}
+     const c=controllers[i],p=new THREE.Vector3();c.getWorldPosition(p);const touching=handTouches(p);anyTouch=anyTouch||touching;if(touching&&!wasTouching[i])handAnchors[i]=p.clone();if(touching&&handAnchors[i]){const delta=handAnchors[i].clone().sub(p);delta.y=0;if(delta.lengthSq()<1.0)correction.add(delta);else handAnchors[i]=p.clone();}if(!touching)handAnchors[i]=null;wasTouching[i]=touching;
+   }
    correction.clampLength(0,.12);let movedX=0,movedZ=0;
    if(anyTouch){if(!collides(rig.position.x+correction.x,rig.position.z)){rig.position.x+=correction.x;movedX=correction.x;}if(!collides(rig.position.x,rig.position.z+correction.z)){rig.position.z+=correction.z;movedZ=correction.z;}velocity.x=movedX/dt*.12;velocity.z=movedZ/dt*.12;}
    else{velocity.x*=Math.pow(.24,dt);velocity.z*=Math.pow(.24,dt);const driftX=velocity.x*dt,driftZ=velocity.z*dt;if(!collides(rig.position.x+driftX,rig.position.z)){rig.position.x+=driftX;movedX=driftX;}else velocity.x=0;if(!collides(rig.position.x,rig.position.z+driftZ)){rig.position.z+=driftZ;movedZ=driftZ;}else velocity.z=0;}
