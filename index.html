@@ -52,8 +52,18 @@ const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness})
 const wallBoxes=[], roomPillarBoxes=[];
 const mazeSize=13, cell=4, wallH=2.65, half=mazeSize*cell/2;
 
-// Small, locally generated textures keep the game self-contained and avoid slow external image downloads.
-// They are deliberately subtle: faded patterned wallpaper, looped brown carpet, and porous acoustic ceiling tiles.
+// Load the supplied wall and floor images from the local assets folder.
+// Local assets avoid regenerating these two large surfaces with canvas code.
+function configureTexture(texture, repeatX, repeatY){
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+  texture.repeat.set(repeatX,repeatY);
+  texture.anisotropy=Math.min(2,renderer.capabilities.getMaxAnisotropy());
+  return texture;
+}
+const textureLoader=new THREE.TextureLoader();
+const wallpaperTexture=configureTexture(textureLoader.load('assets/wallpaper.jpg'),3,2);
+const carpetTexture=configureTexture(textureLoader.load('assets/carpet.png'),mazeSize*cell/2,mazeSize*cell/2);
 function seededRandom(seed){let n=seed>>>0;return ()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296;};}
 function makeCanvasTexture(size,paint,seed){
   const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
@@ -62,49 +72,9 @@ function makeCanvasTexture(size,paint,seed){
   const texture=new THREE.CanvasTexture(canvas);
   texture.colorSpace=THREE.SRGBColorSpace;
   texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
-  texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+  texture.anisotropy=Math.min(2,renderer.capabilities.getMaxAnisotropy());
   return texture;
 }
-const wallpaperTexture=makeCanvasTexture(256,(ctx,size,rng)=>{
-  // A uniform aged-paper base avoids a visible diagonal gradient seam each time the tile repeats.
-  ctx.fillStyle='#c4b774';ctx.fillRect(0,0,size,size);
-  for(let i=0;i<10000;i++){
-    const warm=rng()>.5;
-    ctx.fillStyle=warm?'rgba(255,244,184,0.045)':'rgba(73,72,39,0.055)';
-    ctx.fillRect(rng()*size,rng()*size,1+rng()*2,1+rng()*2);
-  }
-  ctx.lineWidth=1;
-  for(let y=0;y<size;y+=32)for(let x=0;x<size;x+=32){
-    const shift=(y/32%2)*2;
-    ctx.strokeStyle='rgba(87,94,48,0.26)';
-    ctx.beginPath();ctx.moveTo(x+8+shift,y+8);ctx.lineTo(x+16+shift,y+16);ctx.lineTo(x+24+shift,y+8);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(x+8+shift,y+22);ctx.lineTo(x+16+shift,y+28);ctx.lineTo(x+24+shift,y+22);ctx.stroke();
-    ctx.fillStyle='rgba(93,91,52,0.20)';ctx.fillRect(x+15+shift,y+2,1,2);
-  }
-  for(let i=0;i<10;i++){
-    ctx.fillStyle='rgba(111,103,55,0.025)';
-    ctx.fillRect(0,rng()*size,size,2+rng()*7);
-  }
-},103);
-wallpaperTexture.repeat.set(3,2);
-const carpetTexture=makeCanvasTexture(256,(ctx,size,rng)=>{
-  const image=ctx.createImageData(size,size);
-  for(let i=0;i<image.data.length;i+=4){
-    const grain=(rng()-.5)*36;
-    image.data[i]=Math.max(0,Math.min(255,126+grain));
-    image.data[i+1]=Math.max(0,Math.min(255,110+grain*.78));
-    image.data[i+2]=Math.max(0,Math.min(255,73+grain*.52));
-    image.data[i+3]=255;
-  }
-  ctx.putImageData(image,0,0);
-  for(let i=0;i<3600;i++){
-    const v=rng(),x=rng()*size,y=rng()*size;
-    ctx.strokeStyle=v>.5?'rgba(213,193,129,0.18)':'rgba(48,43,28,0.22)';
-    ctx.lineWidth=.5+rng()*.8;ctx.beginPath();
-    ctx.moveTo(x,y);ctx.lineTo(x+(rng()-.5)*5,y+(rng()-.5)*3);ctx.stroke();
-  }
-},209);
-carpetTexture.repeat.set(mazeSize*cell/2,mazeSize*cell/2);
 const ceilingTexture=makeCanvasTexture(128,(ctx,size,rng)=>{
   ctx.fillStyle='#a49f87';ctx.fillRect(0,0,size,size);
   for(let i=0;i<4500;i++){
