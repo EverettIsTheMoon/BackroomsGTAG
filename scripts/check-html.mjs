@@ -15,7 +15,7 @@ function check(name, passed, detail = '') {
 
 const htmlPath = resolve(process.cwd(), 'index.html');
 const html = readFileSync(htmlPath, 'utf8');
-const moduleScripts = [...html.matchAll(/<script type="module">([\\s\\S]*?)<\\/script>/g)];
+const moduleScripts = [...html.matchAll(/<script type="module">([\s\S]*?)<\/script>/g)];
 check('index.html exists and is non-empty', html.length > 1000);
 check('exactly one module script', moduleScripts.length === 1, 'found ' + moduleScripts.length);
 check('Three.js import map is configured', html.includes('"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"'));
