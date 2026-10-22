@@ -42,6 +42,8 @@ The pictures were used as visual references only; their pixels are not bundled i
 
 21. **Ceiling relief:** the ceiling was previously represented by one textured plane, so its tile grid had no geometric relief. It is now a grid of 7,569 individually instanced 0.598 m acoustic ceiling tiles above a backing plane. The shared mesh keeps the entire grid to one draw call, and fluorescent panels sit slightly below the tile underside so the bright faces stay visible from the room.
 
+22. **Lighting coverage:** the former nine point lights over the 52 m × 52 m scene left much of the environment outside their 10 m radius, while the glowing panels themselves were decorative. Replaced that with a 4 × 4 grid of lower-intensity point lights with a 16 m range. This improves overall coverage without adding dynamic shadows or making every one of the 49 panels a separate light.
+
 ## Checks run
 
 - Parsed the full module script with a JavaScript syntax check after stripping its single top-level Three.js import: **PASS**.
