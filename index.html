@@ -133,11 +133,11 @@ const hands=[], handAnchors=[null,null], wasTouching=[false,false];
 for(let i=0;i<2;i++){const c=controllers[i];rig.add(c);const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));c.add(hand);hands.push(hand);const grip=renderer.xr.getControllerGrip(i);rig.add(grip);}
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 const playerRadius=.22, virtualHeadHeight=1.62, ceilingHeadClearance=.28;
-let handY=.62, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
+let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.62;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
+function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
 reset();
-function startDesktop(){started=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;mobileAvatar.visible=false;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,1.42,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.20,handY,-.40);}else{camera.position.set(0,0,0);}renderer.setAnimationLoop(animate);}
+function startDesktop(){started=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;mobileAvatar.visible=false;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,1.05,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,0,0);}renderer.setAnimationLoop(animate);}
 document.getElementById('start').addEventListener('click',startDesktop);
 document.getElementById('enter').addEventListener('click',async()=>{try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';return;}const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor','hand-tracking']});await renderer.xr.setSession(session);started=true;desktop=false;mobileTest=false;mobileAvatar.visible=false;camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push your hands against the floor or walls to move.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;}});
 document.getElementById('reset').addEventListener('click',reset);
@@ -154,7 +154,7 @@ function animate(){
  if(renderer.xr.isPresenting){const desiredRigY=virtualHeadHeight-camera.position.y;const ceilingSafeRigY=wallH-.22-camera.position.y;rig.position.y=Math.min(desiredRigY,ceilingSafeRigY);}
  if(mobileTest&&started){
    // Swipe velocity drives the test hand; a quicker swipe gives a faster vertical hand motion.
-   handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.015,2.1);
+   handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.005,1.8);
    // Floor contact plus a fast downward hand stroke launches the player upward.
    mobilePushCooldown=Math.max(0,mobilePushCooldown-dt);
    if(handY<=.10 && handVelocityY < -0.35 && mobilePushCooldown<=0){
