@@ -16,6 +16,17 @@
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile test: swipe to move the hand. In VR, keep your head height steady and listen for the creature.</p></section>
  <div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span>NO EXIT FOUND</span></div>
 </div>
+<script>
+function showGameError(message){
+  const hint=document.getElementById('hint');
+  if(hint){hint.textContent='GAME ERROR: '+String(message).slice(0,180);hint.style.color='#ff9b9b';}
+}
+window.addEventListener('error',event=>showGameError(event.message||'A script or resource failed to load.'));
+window.addEventListener('unhandledrejection',event=>{
+  const reason=event.reason;
+  showGameError(reason&&reason.message?reason.message:String(reason||'Unhandled promise rejection'));
+});
+</script>
 <script type="module">
 import * as THREE from 'three';
 
