@@ -461,6 +461,16 @@ document.getElementById('reset').addEventListener('click',reset);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='Escape')document.getElementById('panel').classList.remove('hidden');});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 let dragging=false,lastX=0,lastY=0;
+// Clear held movement keys when focus changes so WASD cannot get stuck after switching tabs.
+addEventListener('blur',()=>{keys={};dragging=false;activeTouchId=null;velocity.set(0,0,0);});
+document.addEventListener('visibilitychange',()=>{
+  if(!monsterAudioContext)return;
+  if(document.hidden){
+    if(monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});
+  }else if(started&&monsterAudioContext.state==='suspended'){
+    monsterAudioContext.resume().catch(()=>{});
+  }
+});
 renderer.domElement.addEventListener('pointerdown',e=>{if(mobileTest){activeTouchId=e.pointerId;previousTouchY=e.clientY;previousTouchTime=performance.now();renderer.domElement.setPointerCapture(e.pointerId);return;}if(!desktop)return;dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
 renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
 renderer.domElement.addEventListener('pointercancel',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
