@@ -12,8 +12,8 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.1 · LIMINAL ZONE</div></div><button id="reset" class="secondary">RESET</button></div>
- <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Enter the maze, push off the walls, and listen carefully.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY WITHOUT VR</button><p style="font-size:12px;margin:14px 0 0">Best in Meta Quest Browser · Headphones recommended</p></section>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.2 · MOBILE HAND TEST</div></div><button id="reset" class="secondary">RESET</button></div>
+ <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Enter the maze, push off the walls, and listen carefully.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile test: swipe up/down to move the visible hand. Faster swipes move it faster.</p></section>
  <div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span>NO EXIT FOUND</span></div>
 </div>
 <script type="module">
@@ -22,7 +22,6 @@ import * as THREE from 'three';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb9ad73);
 scene.fog = new THREE.FogExp2(0xb9ad73, 0.027);
-// Broad, cheap lighting is much friendlier to standalone VR than dozens of point lights.
 scene.add(new THREE.HemisphereLight(0xffe8b0, 0x393522, 1.15));
 scene.add(new THREE.AmbientLight(0xffffff, 0.18));
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 90);
@@ -44,87 +43,73 @@ const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(mazeSize*cell,mazeSize*cell
 ceiling.rotation.x=Math.PI/2; ceiling.position.y=wallH; scene.add(ceiling);
 const grid=Array.from({length:mazeSize},()=>Array.from({length:mazeSize},()=>({seen:false,w:[true,true,true,true]})));
 const dirs=[[-1,0,0,2],[0,1,1,3],[1,0,2,0],[0,-1,3,1]];
-// Depth-first maze carving keeps a continuous route through the level.
 const stack=[[0,0]];grid[0][0].seen=true;
 while(stack.length){const [x,z]=stack[stack.length-1];const opts=dirs.map(d=>[x+d[0],z+d[1],d]).filter(([nx,nz])=>nx>=0&&nz>=0&&nx<mazeSize&&nz<mazeSize&&!grid[nz][nx].seen);if(!opts.length){stack.pop();continue;}const [nx,nz,d]=opts[Math.floor(Math.random()*opts.length)];grid[z][x].w[d[2]]=false;grid[nz][nx].w[d[3]]=false;grid[nz][nx].seen=true;stack.push([nx,nz]);}
-// Widen a few connectors to create slightly less uniform hallways.
 for(let z=1;z<mazeSize-1;z+=3) for(let x=1;x<mazeSize-1;x+=4){if(Math.random()<.65){grid[z][x].w[1]=false;grid[z+1][x].w[3]=false;}}
 const wallGeo=new THREE.BoxGeometry(cell,wallH,.16);
 function addWall(x,z,orientation){const m=new THREE.Mesh(wallGeo,Math.random()<.24?wallAlt:wallMat);m.position.set(x,wallH/2,z);if(orientation==='x')m.rotation.y=Math.PI/2;scene.add(m);const b=new THREE.Box3().setFromObject(m);wallBoxes.push({minX:b.min.x,maxX:b.max.x,minZ:b.min.z,maxZ:b.max.z,minY:0,maxY:wallH});}
-for(let z=0;z<mazeSize;z++)for(let x=0;x<mazeSize;x++){
- const cx=(x-mazeSize/2+.5)*cell, cz=(z-mazeSize/2+.5)*cell, w=grid[z][x].w;
- if(w[0])addWall(cx-cell/2,cz,'x');
- if(w[3])addWall(cx,cz-cell/2,'z');
- if(x===mazeSize-1&&w[2])addWall(cx+cell/2,cz,'x');
- if(z===mazeSize-1&&w[1])addWall(cx,cz+cell/2,'z');
- // Simple baseboard gives scale without lots of geometry.
-}
+for(let z=0;z<mazeSize;z++)for(let x=0;x<mazeSize;x++){const cx=(x-mazeSize/2+.5)*cell, cz=(z-mazeSize/2+.5)*cell, w=grid[z][x].w;if(w[0])addWall(cx-cell/2,cz,'x');if(w[3])addWall(cx,cz-cell/2,'z');if(x===mazeSize-1&&w[2])addWall(cx+cell/2,cz,'x');if(z===mazeSize-1&&w[1])addWall(cx,cz+cell/2,'z');}
 const lightGeo=new THREE.BoxGeometry(1.15,.035,.42);
-for(let z=0;z<mazeSize;z+=2)for(let x=0;x<mazeSize;x+=2){
- const lx=(x-mazeSize/2+.5)*cell,lz=(z-mazeSize/2+.5)*cell;
- const panel=new THREE.Mesh(lightGeo,lightMat);panel.position.set(lx,wallH-.035,lz);scene.add(panel);
-
-}
+for(let z=0;z<mazeSize;z+=2)for(let x=0;x<mazeSize;x+=2){const lx=(x-mazeSize/2+.5)*cell,lz=(z-mazeSize/2+.5)*cell;const panel=new THREE.Mesh(lightGeo,lightMat);panel.position.set(lx,wallH-.035,lz);scene.add(panel);}
 const baseboardGeo=new THREE.BoxGeometry(cell,.12,.08);
 for(let i=0;i<mazeSize;i++){const p=(i-mazeSize/2+.5)*cell;const a=new THREE.Mesh(baseboardGeo,trimMat);a.position.set(p,.07,-half);scene.add(a);}
-// Exit sign is intentionally misleading: the door is blocked.
 const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.5,-half+1);scene.add(sign);
 const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({color:0x8bd477}));signText.position.set(0,2.5,-half+.94);scene.add(signText);
 
-// Controller hands are intentionally simple, cheap capsule-like meshes.
+// Low-poly avatar exists only in the mobile test. VR and desktop first-person views are unchanged.
+const mobileAvatar=new THREE.Group(); rig.add(mobileAvatar);
+const avatarMat=mat(0x4a5144), skinMat=mat(0xc9a77e), shirtMat=mat(0x343d32);
+const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.24,.58,3,7),shirtMat);torso.position.set(0,1.03,0);mobileAvatar.add(torso);
+const head=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),skinMat);head.position.set(0,1.57,0);mobileAvatar.add(head);
+const armGeo=new THREE.CapsuleGeometry(.085,.48,3,6);
+for(const side of [-1,1]){const arm=new THREE.Mesh(armGeo,avatarMat);arm.position.set(side*.31,1.12,-.02);arm.rotation.z=side*.16;mobileAvatar.add(arm);}
+const legGeo=new THREE.CapsuleGeometry(.105,.48,3,6);
+for(const side of [-1,1]){const leg=new THREE.Mesh(legGeo,avatarMat);leg.position.set(side*.13,.38,0);mobileAvatar.add(leg);}
+const testHand=new THREE.Group();mobileAvatar.add(testHand);
+const handPalm=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),skinMat);handPalm.scale.set(1,.72,1.15);testHand.add(handPalm);
+const fingerGeo=new THREE.CapsuleGeometry(.035,.13,2,5);
+for(let i=0;i<3;i++){const f=new THREE.Mesh(fingerGeo,skinMat);f.position.set((i-1)*.07,-.045,-.12);f.rotation.x=-.35;testHand.add(f);}
+testHand.position.set(.43,1.15,-.58);
+mobileAvatar.visible=false;
+
 const controllers=[renderer.xr.getController(0),renderer.xr.getController(1)];
 const hands=[], handAnchors=[null,null], wasTouching=[false,false];
-for(let i=0;i<2;i++){const c=controllers[i];rig.add(c);const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));c.add(hand);hands.push(hand);const ray=renderer.xr.getControllerGrip(i);rig.add(ray);}
-const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, yaw=0, pitch=0, keys={};let lastPlayerMove=new THREE.Vector3();
+for(let i=0;i<2;i++){const c=controllers[i];rig.add(c);const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));c.add(hand);hands.push(hand);const grip=renderer.xr.getControllerGrip(i);rig.add(grip);}
+const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 const playerRadius=.22, virtualHeadHeight=1.62;
-function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);lastPlayerMove.set(0,0,0);}
+let handY=1.15, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0;
+function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-b.minZ<b.maxZ)return true;}return false;}
+function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=1.15;handVelocityY=0;testHand.position.y=handY;}
 reset();
-function startDesktop(){desktop=true;started=true;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='WASD to move · Drag to look · Find a way out.';renderer.setAnimationLoop(animate);}
+function startDesktop(){started=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;mobileAvatar.visible=mobileTest;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down anywhere to raise/lower the hand; swipe speed controls hand speed.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,2.6,5.5);camera.lookAt(0,1.05,0);camera.rotation.order='YXZ';}else{camera.position.set(0,0,0);}renderer.setAnimationLoop(animate);}
 document.getElementById('start').addEventListener('click',startDesktop);
-document.getElementById('enter').addEventListener('click',async()=>{try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';return;}const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor','hand-tracking']});await renderer.xr.setSession(session);started=true;desktop=false;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push your hands against the floor or walls to move.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;}});
+document.getElementById('enter').addEventListener('click',async()=>{try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';return;}const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor','hand-tracking']});await renderer.xr.setSession(session);started=true;desktop=false;mobileTest=false;mobileAvatar.visible=false;camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push your hands against the floor or walls to move.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;}});
 document.getElementById('reset').addEventListener('click',reset);
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='Escape'){document.getElementById('panel').classList.remove('hidden');}});
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='Escape')document.getElementById('panel').classList.remove('hidden');});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 let dragging=false,lastX=0,lastY=0;
-renderer.domElement.addEventListener('pointerdown',e=>{if(!desktop)return;dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
-renderer.domElement.addEventListener('pointerup',()=>dragging=false);
-renderer.domElement.addEventListener('pointermove',e=>{if(!desktop||!dragging)return;yaw-=(e.clientX-lastX)*.004;pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY;});
+renderer.domElement.addEventListener('pointerdown',e=>{if(mobileTest){activeTouchId=e.pointerId;previousTouchY=e.clientY;previousTouchTime=performance.now();renderer.domElement.setPointerCapture(e.pointerId);return;}if(!desktop)return;dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
+renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
+renderer.domElement.addEventListener('pointercancel',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
+renderer.domElement.addEventListener('pointermove',e=>{if(mobileTest&&e.pointerId===activeTouchId){const now=performance.now(), elapsed=Math.max(.008,(now-previousTouchTime)/1000), dy=e.clientY-previousTouchY;handVelocityY=THREE.MathUtils.clamp((-dy/elapsed)*.0035,-3.8,3.8);previousTouchY=e.clientY;previousTouchTime=now;return;}if(!desktop||!dragging)return;yaw-=(e.clientX-lastX)*.004;pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY;});
 function handTouches(p){if(p.y<.20)return true;for(const b of wallBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}return false;}
 function animate(){
  const dt=Math.min(clock.getDelta(),.035);
- // Lock virtual head height: real-world standing/crouching is not used to raise/lower the in-game avatar.
  if(renderer.xr.isPresenting){rig.position.y=virtualHeadHeight-camera.position.y;}
- if(desktop&&started){camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
+ if(mobileTest&&started){
+   // Swipe velocity drives the test hand; a quicker swipe gives a faster vertical hand motion.
+   handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.22,2.65);
+   handVelocityY*=Math.pow(.18,dt);
+   testHand.position.y=handY;
+   // Third-person chase view, limited to the mobile test mode.
+   camera.position.set(0,2.65,5.5);camera.lookAt(0,1.0,0);
+ }else if(desktop&&started){camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
  else if(renderer.xr.isPresenting&&started){
    const correction=new THREE.Vector3();let anyTouch=false;
-   for(let i=0;i<controllers.length;i++){
-     const c=controllers[i], p=new THREE.Vector3();c.getWorldPosition(p);
-     const touching=handTouches(p);anyTouch=anyTouch||touching;
-     // Plant a hand anchor on first contact; keep it approximately fixed while pushing.
-     if(touching&&!wasTouching[i])handAnchors[i]=p.clone();
-     if(touching&&handAnchors[i]){
-       const delta=handAnchors[i].clone().sub(p);delta.y=0;
-       if(delta.lengthSq()<1.0)correction.add(delta);
-       else handAnchors[i]=p.clone(); // ignore sudden tracking jumps
-     }
-     if(!touching)handAnchors[i]=null;
-     wasTouching[i]=touching;
-   }
-   correction.clampLength(0,0.12);
-   let movedX=0,movedZ=0;
-   if(anyTouch){
-     if(!collides(rig.position.x+correction.x,rig.position.z)){rig.position.x+=correction.x;movedX=correction.x;}
-     if(!collides(rig.position.x,rig.position.z+correction.z)){rig.position.z+=correction.z;movedZ=correction.z;}
-     // Keep only a modest release impulse; don't add a second movement while hands are planted.
-     velocity.x=movedX/dt*.12;velocity.z=movedZ/dt*.12;
-   }else{
-     velocity.x*=Math.pow(.24,dt);velocity.z*=Math.pow(.24,dt);
-     const driftX=velocity.x*dt,driftZ=velocity.z*dt;
-     if(!collides(rig.position.x+driftX,rig.position.z)){rig.position.x+=driftX;movedX=driftX;}else velocity.x=0;
-     if(!collides(rig.position.x,rig.position.z+driftZ)){rig.position.z+=driftZ;movedZ=driftZ;}else velocity.z=0;
-   }
-   lastPlayerMove.set(movedX,0,movedZ);
+   for(let i=0;i<controllers.length;i++){const c=controllers[i],p=new THREE.Vector3();c.getWorldPosition(p);const touching=handTouches(p);anyTouch=anyTouch||touching;if(touching&&!wasTouching[i])handAnchors[i]=p.clone();if(touching&&handAnchors[i]){const delta=handAnchors[i].clone().sub(p);delta.y=0;if(delta.lengthSq()<1.0)correction.add(delta);else handAnchors[i]=p.clone();}if(!touching)handAnchors[i]=null;wasTouching[i]=touching;}
+   correction.clampLength(0,.12);let movedX=0,movedZ=0;
+   if(anyTouch){if(!collides(rig.position.x+correction.x,rig.position.z)){rig.position.x+=correction.x;movedX=correction.x;}if(!collides(rig.position.x,rig.position.z+correction.z)){rig.position.z+=correction.z;movedZ=correction.z;}velocity.x=movedX/dt*.12;velocity.z=movedZ/dt*.12;}
+   else{velocity.x*=Math.pow(.24,dt);velocity.z*=Math.pow(.24,dt);const driftX=velocity.x*dt,driftZ=velocity.z*dt;if(!collides(rig.position.x+driftX,rig.position.z)){rig.position.x+=driftX;movedX=driftX;}else velocity.x=0;if(!collides(rig.position.x,rig.position.z+driftZ)){rig.position.z+=driftZ;movedZ=driftZ;}else velocity.z=0;}
  }
  if(!started){const t=performance.now()*.00008;camera.position.set(Math.sin(t)*.05,1.62,0);camera.lookAt(Math.sin(t+1)*.1,1.6,-3);}
  renderer.render(scene,camera);
