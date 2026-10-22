@@ -45,6 +45,7 @@ for (const marker of [
   'getViewerPose(renderer.xr.getReferenceSpace())',
   'new THREE.InstancedMesh(wallGeo',
   'new THREE.InstancedMesh(ceilingTileGeo',
+  'ceilingTiles.setColorAt(ceilingTileIndex,tileTint)',
   'const ceilingGridCount=Math.ceil(mazeSize*cell/.6)',
   'const wideRooms=[]',
   'new THREE.InstancedMesh(pillarGeo',
