@@ -255,7 +255,10 @@ const outletSlotGeo=new THREE.BoxGeometry(.025,.07,.012);
 const outletPlacements=[];
 for(const b of wallBoxes){
   if(Math.random()>.075||outletPlacements.length>=10)continue;
-  outletPlacements.push({x:b.centerX,z:b.centerZ,orientation:b.orientation,side:Math.random()<.5?-1:1});
+  const alongZ=b.orientation==='x';
+  const onOuterBoundary=alongZ?Math.abs(Math.abs(b.centerX)-half)<.01:Math.abs(Math.abs(b.centerZ)-half)<.01;
+  const inwardSide=alongZ?(b.centerX<0?1:-1):(b.centerZ<0?1:-1);
+  outletPlacements.push({x:b.centerX,z:b.centerZ,orientation:b.orientation,side:onOuterBoundary?inwardSide:(Math.random()<.5?-1:1)});
 }
 const outletPlates=new THREE.InstancedMesh(outletPlateGeo,outletPlateMat,outletPlacements.length);
 const outletSlots=new THREE.InstancedMesh(outletSlotGeo,outletSlotMat,outletPlacements.length*2);
@@ -277,14 +280,15 @@ outletPlates.instanceMatrix.needsUpdate=true;outletSlots.instanceMatrix.needsUpd
 outletPlates.computeBoundingSphere();outletSlots.computeBoundingSphere();
 if(outletPlacements.length){scene.add(outletPlates);scene.add(outletSlots);}
 
-const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.5,-half+1);scene.add(sign);
+const signZ=-half+.115;
+const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.5,signZ);scene.add(sign);
 const signTexture=makeCanvasTexture(256,(ctx,size)=>{
   ctx.fillStyle='#182016';ctx.fillRect(0,0,size,size);
   ctx.strokeStyle='#89946a';ctx.lineWidth=5;ctx.strokeRect(8,8,size-16,size-16);
   ctx.fillStyle='#d9d2a0';ctx.font='bold 42px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('NO EXIT',size/2,size/2+1);
   ctx.fillStyle='rgba(160,155,105,.25)';for(let y=18;y<size;y+=37)ctx.fillRect(12,y,size-24,1);
 },701);
-const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({map:signTexture}));signText.position.set(0,2.5,-half+.94);scene.add(signText);
+const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({map:signTexture}));signText.position.set(0,2.5,signZ+.041);scene.add(signText);
 
 // A low-poly roaming entity: long limbs, a narrow head and small emissive eyes.
 // Its route follows the maze's actual open cell connections, so it stays in corridors.
