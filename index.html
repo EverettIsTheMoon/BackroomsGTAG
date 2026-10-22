@@ -98,7 +98,19 @@ function animate(){
  if(renderer.xr.isPresenting){rig.position.y=virtualHeadHeight-camera.position.y;}
  if(mobileTest&&started){
    // Swipe velocity drives the test hand; a quicker swipe gives a faster vertical hand motion.
-   handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.22,2.65);
+   handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.08,2.65);
+   // Floor contact plus a fast downward hand stroke launches the player upward.
+   mobilePushCooldown=Math.max(0,mobilePushCooldown-dt);
+   if(handY<=.10 && handVelocityY < -0.35 && mobilePushCooldown<=0){
+     mobilePushVelocity=Math.max(mobilePushVelocity,Math.min(9,4.5+Math.abs(handVelocityY)*.9));
+     mobilePushCooldown=.28;
+     handY=.12;
+     document.getElementById('hint').textContent='PUSH-OFF! Floor push detected.';
+   }
+   // Apply gravity and integrate the launch to the first-person camera rig.
+   mobilePushVelocity-=9.81*dt;
+   rig.position.y+=mobilePushVelocity*dt;
+   if(rig.position.y<=0){rig.position.y=0;if(mobilePushVelocity<0)mobilePushVelocity=0;}
    handVelocityY*=Math.pow(.42,dt);
    testHand.position.y=handY;
    // Third-person chase view, limited to the mobile test mode.
