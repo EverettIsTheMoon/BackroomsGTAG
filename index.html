@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.4 · LIMINAL HORROR AUDIT</div></div><button id="reset" class="secondary">RESET</button></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.5 · LOCOMOTION QA</div></div><button id="reset" class="secondary">RESET</button></div>
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile test: swipe to move the hand. In VR, keep your head height steady and listen for the creature.</p></section>
  <div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span>NO EXIT FOUND</span></div>
 </div>
@@ -431,11 +431,11 @@ for(let i=0;i<3;i++){const f=new THREE.Mesh(fingerGeo,skinMat);f.position.set((i
 testHand.position.set(.32,1.15,-.58);testHand.visible=false;
 
 const controllers=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
-const hands=[], handAnchors=[null,null], wasTouching=[false,false], controllerConnected=[false,false];
+const handAnchors=[null,null], wasTouching=[false,false], controllerConnected=[false,false];
 for(let i=0;i<2;i++){
  const c=controllers[i];rig.add(c);
  const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));
- hand.visible=false;c.add(hand);hands.push(hand);
+ hand.visible=false;c.add(hand);
  c.addEventListener('connected',()=>{controllerConnected[i]=true;hand.visible=true;});
  c.addEventListener('disconnected',()=>{controllerConnected[i]=false;handAnchors[i]=null;wasTouching[i]=false;hand.visible=false;});
 }
