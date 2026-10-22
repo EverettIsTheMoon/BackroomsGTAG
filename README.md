@@ -18,7 +18,7 @@ The site deploys through GitHub Actions from the main branch; that workflow runs
 - Subtle ceiling lights with occasional flicker and synthesized low electrical hum.
 - A roaming low-poly creature that follows open maze connections, with occasional spatialized growls that get quieter with distance.
 - WebXR controller push locomotion using the physical controller grip pose (disconnected controllers are ignored), desktop WASD/mouse preview, mobile hand-swipe test, and a reset button.
-- VR and desktop eye-height targets are **1.52 metres**; VR uses the XR frame's viewer pose in the required `local-floor` reference space. Ending a VR session returns to the menu and pauses ambience.
+- VR and desktop eye-height targets are **1.52 metres**; VR uses the XR frame's viewer pose in the required `local-floor` reference space. The VR height offset is applied to the headset camera only, leaving hand/controller positions at their tracked height. Ending a VR session returns to the menu and pauses ambience.
 - Runtime errors and unhandled promise rejections are surfaced in the on-screen hint area.
 
 ## Known limitations
