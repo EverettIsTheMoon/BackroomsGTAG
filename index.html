@@ -50,10 +50,10 @@ const wallGeo=new THREE.BoxGeometry(cell,wallH,.16);
 function addWall(x,z,orientation){const m=new THREE.Mesh(wallGeo,Math.random()<.24?wallAlt:wallMat);m.position.set(x,wallH/2,z);if(orientation==='x')m.rotation.y=Math.PI/2;scene.add(m);const b=new THREE.Box3().setFromObject(m);wallBoxes.push({minX:b.min.x,maxX:b.max.x,minZ:b.min.z,maxZ:b.max.z,minY:0,maxY:wallH});}
 for(let z=0;z<mazeSize;z++)for(let x=0;x<mazeSize;x++){
  const cx=(x-mazeSize/2+.5)*cell, cz=(z-mazeSize/2+.5)*cell, w=grid[z][x].w;
- if(w[0])addWall(cx,cz-cell/2,'z');
- if(w[3])addWall(cx-cell/2,cz,'x');
- if(x===mazeSize-1&&w[1])addWall(cx+cell/2,cz,'x');
- if(z===mazeSize-1&&w[2])addWall(cx,cz+cell/2,'z');
+ if(w[0])addWall(cx-cell/2,cz,'x');
+ if(w[3])addWall(cx,cz-cell/2,'z');
+ if(x===mazeSize-1&&w[2])addWall(cx+cell/2,cz,'x');
+ if(z===mazeSize-1&&w[1])addWall(cx,cz+cell/2,'z');
  // Simple baseboard gives scale without lots of geometry.
 }
 const lightGeo=new THREE.BoxGeometry(1.15,.035,.42);
@@ -100,13 +100,12 @@ function animate(){
      if(previousHands[i]&&touching&&wasTouching[i]){const handDelta=p.clone().sub(previousHands[i]).sub(lastPlayerMove);if(handDelta.lengthSq()<.18){playerMove.addScaledVector(handDelta,-2.8);}}
      previousHands[i]=p.clone();wasTouching[i]=touching;
    }
-   // Momentum plus gravity; collision checks prevent walking through walls.
-   velocity.y-=9.8*dt;velocity.x+=playerMove.x/dt;velocity.z+=playerMove.z/dt;
+   // Horizontal momentum with damping; virtual height stays fixed regardless of real-world crouching.
+   velocity.x+=playerMove.x/dt;velocity.z+=playerMove.z/dt;
    velocity.x*=Math.pow(.18,dt);velocity.z*=Math.pow(.18,dt);
    const nx=rig.position.x+velocity.x*dt,nz=rig.position.z+velocity.z*dt;
    if(!collides(nx,rig.position.z))rig.position.x=nx;else velocity.x=0;
    if(!collides(rig.position.x,nz))rig.position.z=nz;else velocity.z=0;
-   if(rig.position.y<=0){rig.position.y=0;if(velocity.y<0)velocity.y=0;}else{rig.position.y=Math.max(0,rig.position.y+velocity.y*dt);}
    lastPlayerMove.set(velocity.x*dt,0,velocity.z*dt);
  }
  if(!started){const t=performance.now()*.00008;camera.position.set(Math.sin(t)*.05,1.62,0);camera.lookAt(Math.sin(t+1)*.1,1.6,-3);}
