@@ -46,6 +46,7 @@ The pictures were used as visual references only; their pixels are not bundled i
 
 23. **Ceiling repetition:** every ceiling tile had previously shared identical pixel noise and tone. Per-instance tinting now adds small, restrained variations across the 7,569 tile instances while retaining the single batched mesh.
 24. **Monster sound range:** the original monster spawn was in the diagonally opposite corner, roughly 67 m from the player start and beyond the growl panner's 55 m maximum distance. Its initial corner is now on the far side of the same edge, roughly 47 m away, so the player can hear the low growls faintly before the creature wanders closer.
+25. **Spawn orientation:** the player spawn was near two boundary walls but always faced north, which could leave the first view pointed straight into a wall. Reset now checks the guaranteed interior openings and faces north if that corridor is open, otherwise east.
 
 ## Checks run
 
