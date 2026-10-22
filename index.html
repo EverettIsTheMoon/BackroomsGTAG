@@ -36,7 +36,9 @@ scene.fog = new THREE.FogExp2(0xb9ad73, 0.027);
 scene.add(new THREE.HemisphereLight(0xffe8b0, 0x393522, 0.95));
 scene.add(new THREE.AmbientLight(0xffffff, 0.12));
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 90);
-const rig = new THREE.Group(); rig.add(camera); scene.add(rig);
+const rig = new THREE.Group();
+// Keep headset height correction in a camera-only parent so controller/floor contact stays grounded.
+const headOffset = new THREE.Group();rig.add(headOffset);headOffset.add(camera);scene.add(rig);
 const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 renderer.setSize(innerWidth,innerHeight); renderer.xr.enabled=true;
@@ -426,26 +428,25 @@ const testHand=new THREE.Group();rig.add(testHand);
 const handPalm=new THREE.Mesh(new THREE.SphereGeometry(.085,10,8),skinMat);handPalm.scale.set(1,.72,1.15);testHand.add(handPalm);
 const fingerGeo=new THREE.CapsuleGeometry(.022,.09,2,5);
 for(let i=0;i<3;i++){const f=new THREE.Mesh(fingerGeo,skinMat);f.position.set((i-1)*.046,-.03,-.08);f.rotation.x=-.35;testHand.add(f);}
-testHand.position.set(.32,1.15,-.58);
-
+testHand.position.set(.32,1.15,-.58);testHand.visible=false;
 
 const controllers=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
 const hands=[], handAnchors=[null,null], wasTouching=[false,false], controllerConnected=[false,false];
 for(let i=0;i<2;i++){
  const c=controllers[i];rig.add(c);
- c.addEventListener('connected',()=>{controllerConnected[i]=true;});
- c.addEventListener('disconnected',()=>{controllerConnected[i]=false;handAnchors[i]=null;wasTouching[i]=false;});
  const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));
- c.add(hand);hands.push(hand);
+ hand.visible=false;c.add(hand);hands.push(hand);
+ c.addEventListener('connected',()=>{controllerConnected[i]=true;hand.visible=true;});
+ c.addEventListener('disconnected',()=>{controllerConnected[i]=false;handAnchors[i]=null;wasTouching[i]=false;hand.visible=false;});
 }
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 const playerRadius=.22, ceilingHeadClearance=.28;
 const TARGET_VR_EYE_HEIGHT=1.52;
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
+function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
 reset();
-function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,.55,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,1.52,0);}renderer.setAnimationLoop(animate);}
+function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;testHand.visible=mobileTest;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,.55,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,1.52,0);}renderer.setAnimationLoop(animate);}
 document.getElementById('start').addEventListener('click',startDesktop);
 document.getElementById('enter').addEventListener('click',async()=>{startMonsterAudio();try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});return;}const session=await navigator.xr.requestSession('immersive-vr',{requiredFeatures:['local-floor'],optionalFeatures:['bounded-floor']});try{await renderer.xr.setSession(session);}catch(e){session.end().catch(()=>{});throw e;}
 session.addEventListener('end',()=>{
@@ -455,7 +456,7 @@ session.addEventListener('end',()=>{
   document.getElementById('hint').textContent='VR session ended. Enter VR to keep exploring.';
   if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});
 });
-started=true;desktop=false;mobileTest=false;monster.visible=true;camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push against walls or the floor to move. Listen for the roaming entity.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});}});
+started=true;desktop=false;mobileTest=false;testHand.visible=false;monster.visible=true;headOffset.position.set(0,0,0);camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push against walls or the floor to move. Listen for the roaming entity.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});}});
 document.getElementById('reset').addEventListener('click',reset);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='Escape')document.getElementById('panel').classList.remove('hidden');});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -472,7 +473,8 @@ function animate(timestamp,xrFrame){
  if(renderer.xr.isPresenting&&xrFrame){
    try{
      const pose=xrFrame.getViewerPose(renderer.xr.getReferenceSpace());
-     if(pose&&Number.isFinite(pose.transform.position.y))rig.position.y=TARGET_VR_EYE_HEIGHT-pose.transform.position.y;
+     rig.position.y=0;
+     if(pose&&Number.isFinite(pose.transform.position.y))headOffset.position.y=TARGET_VR_EYE_HEIGHT-pose.transform.position.y;
    }catch(e){/* Keep the last valid height for this frame if tracking temporarily drops out. */}
  }
  const now=performance.now();
