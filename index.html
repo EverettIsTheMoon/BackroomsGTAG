@@ -369,8 +369,8 @@ for(const side of [-1,1]){
   leg.position.set(side*.15,.40,.015);monsterVisual.add(leg);
 }
 scene.add(monster);monster.visible=false;
-const monsterCell={x:mazeSize-1,z:0};
-let monsterTargetCell={x:mazeSize-1,z:0}, monsterPreviousCell=null;
+const monsterCell={x:mazeSize-1,z:mazeSize-1};
+let monsterTargetCell={x:mazeSize-1,z:mazeSize-1}, monsterPreviousCell=null;
 function cellWorldX(x){return (x-mazeSize/2+.5)*cell;}
 function cellWorldZ(z){return (z-mazeSize/2+.5)*cell;}
 monster.position.set(cellWorldX(monsterCell.x),0,cellWorldZ(monsterCell.z));
