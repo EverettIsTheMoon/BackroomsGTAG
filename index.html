@@ -76,7 +76,7 @@ const controllers=[renderer.xr.getController(0),renderer.xr.getController(1)];
 const hands=[], handAnchors=[null,null], wasTouching=[false,false];
 for(let i=0;i<2;i++){const c=controllers[i];rig.add(c);const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));c.add(hand);hands.push(hand);const grip=renderer.xr.getControllerGrip(i);rig.add(grip);}
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
-const playerRadius=.22, virtualHeadHeight=1.62;
+const playerRadius=.22, virtualHeadHeight=1.62, ceilingHeadClearance=.28;
 let handY=1.15, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
 function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=1.15;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
@@ -102,7 +102,7 @@ function animate(){
    // Floor contact plus a fast downward hand stroke launches the player upward.
    mobilePushCooldown=Math.max(0,mobilePushCooldown-dt);
    if(handY<=.10 && handVelocityY < -0.35 && mobilePushCooldown<=0){
-     mobilePushVelocity=Math.max(mobilePushVelocity,Math.min(9,4.5+Math.abs(handVelocityY)*.9));
+     mobilePushVelocity=Math.max(mobilePushVelocity,Math.min(4.2,2.2+Math.abs(handVelocityY)*.38));
      mobilePushCooldown=.28;
      handY=.12;
      document.getElementById('hint').textContent='PUSH-OFF! Floor push detected.';
@@ -111,6 +111,8 @@ function animate(){
    mobilePushVelocity-=9.81*dt;
    rig.position.y+=mobilePushVelocity*dt;
    if(rig.position.y<=0){rig.position.y=0;if(mobilePushVelocity<0)mobilePushVelocity=0;}
+   const maxRigY=Math.max(0,wallH-ceilingHeadClearance-camera.position.y);
+   if(rig.position.y>maxRigY){rig.position.y=maxRigY;if(mobilePushVelocity>0)mobilePushVelocity=0;}
    handVelocityY*=Math.pow(.42,dt);
    testHand.position.y=handY;
    // Third-person chase view, limited to the mobile test mode.
