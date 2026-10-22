@@ -35,6 +35,8 @@ for (const marker of [
   'controllerConnected[i]',
   "fillText('NO EXIT'",
   'const signZ=-half+.115',
+  'wallH=2.65',
+  'sign.position.set(0,2.22,signZ)',
   'session.end().catch(()=>{})',
   "addEventListener('blur',()=>{keys={};dragging=false;activeTouchId=null;velocity.set(0,0,0);})",
   "document.addEventListener('visibilitychange'",
