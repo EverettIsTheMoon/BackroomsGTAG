@@ -8,7 +8,7 @@ A lightweight WebXR liminal-horror prototype built with Three.js, designed with 
 - **Desktop:** Select **Play / Mobile Test** on a desktop browser, then use **WASD** and drag the mouse to look around.
 - **Mobile test:** Touch and swipe to move the test hand; a fast downward swipe at floor level tests the launch mechanic.
 
-The site deploys through GitHub Actions from the main branch. The page needs an internet connection to load Three.js from jsDelivr.
+The site deploys through GitHub Actions from the main branch; that workflow runs a static HTML/JavaScript smoke check before deployment. The page needs an internet connection to load Three.js from jsDelivr.
 
 ## Current features
 
