@@ -364,15 +364,21 @@ const monsterHead=new THREE.Mesh(new THREE.SphereGeometry(.24,9,7),monsterSkin);
 monsterHead.scale.set(.82,1.42,.78);monsterHead.position.set(0,1.91,-.035);monsterVisual.add(monsterHead);
 const monsterJaw=new THREE.Mesh(new THREE.BoxGeometry(.22,.12,.08),monsterMouthMat);
 monsterJaw.position.set(0,1.73,-.205);monsterVisual.add(monsterJaw);
+const monsterLimbs=[];
+const monsterFootMat=mat(0x11110f,.98);
 for(const side of [-1,1]){
   const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,6,5),monsterEyeMat);
   eye.position.set(side*.105,1.99,-.205);monsterVisual.add(eye);
   const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.075,.88,3,5),monsterSkin);
   arm.position.set(side*.37,.98,-.005);arm.rotation.z=side*.13;monsterVisual.add(arm);
   const hand=new THREE.Mesh(new THREE.SphereGeometry(.085,6,5),monsterSkin);
-  hand.scale.set(.8,1.35,.7);hand.position.set(side*.40,.43,-.015);monsterVisual.add(hand);
+  hand.scale.set(.8,1.35,.7);hand.position.set(side*.02,-.49,-.015);arm.add(hand);
+  monsterLimbs.push({mesh:arm,side,kind:'arm',restZ:side*.13});
   const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.58,3,5),monsterSkin);
   leg.position.set(side*.15,.40,.015);monsterVisual.add(leg);
+  const foot=new THREE.Mesh(new THREE.BoxGeometry(.14,.08,.22),monsterFootMat);
+  foot.position.set(side*.012,-.36,-.065);leg.add(foot);
+  monsterLimbs.push({mesh:leg,side,kind:'leg',restZ:0});
 }
 scene.add(monster);monster.visible=false;
 const monsterCell={x:mazeSize-1,z:mazeSize-1};
@@ -456,8 +462,13 @@ function updateMonster(dt,xrFrame){
     monster.rotation.y=Math.atan2(-dx,-dz);
   }
   const t=performance.now()*.006;
+  const gait=dist>=.09?Math.sin(t*1.8):Math.sin(t*.5)*.08;
   monsterVisual.position.y=.025+Math.abs(Math.sin(t))*.045;
   monsterVisual.rotation.z=Math.sin(t*.65)*.018;
+  for(const limb of monsterLimbs){
+    limb.mesh.rotation.z=limb.restZ;
+    limb.mesh.rotation.x=limb.kind==='arm'?gait*limb.side*.22:-gait*limb.side*.28;
+  }
   if(monsterAudioContext){
     const listener=monsterAudioContext.listener;
     let lx=rig.position.x,ly=1.52,lz=rig.position.z;
