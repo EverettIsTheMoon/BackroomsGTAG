@@ -228,12 +228,13 @@ for(let i=0;i<fixtureCoords.length;i++){
 lightMesh.instanceMatrix.needsUpdate=true;if(lightMesh.instanceColor)lightMesh.instanceColor.needsUpdate=true;
 lightMesh.computeBoundingSphere();scene.add(lightMesh);
 const fluorescentStates=[];
-for(let z=0;z<mazeSize;z+=6)for(let x=0;x<mazeSize;x+=6){
+// A restrained 4 x 4 point-light grid gives the fluorescent panels actual illumination.
+for(let z=0;z<mazeSize;z+=4)for(let x=0;x<mazeSize;x+=4){
   const px=(x-mazeSize/2+.5)*cell,pz=(z-mazeSize/2+.5)*cell;
-  const bulb=new THREE.PointLight(0xffe8ad,1.05,10,2);
+  const bulb=new THREE.PointLight(0xffe8ad,.72,16,2);
   bulb.position.set(px,wallH-.18,pz);scene.add(bulb);
   const panelIndex=fixtureCoords.findIndex(f=>Math.abs(f.x-px)<.01&&Math.abs(f.z-pz)<.01);
-  fluorescentStates.push({bulb,panelIndex,base:1.05,flickers:Math.random()<.38,nextCheck:performance.now()+1500+Math.random()*4000,flickerUntil:0,panelDim:false});
+  fluorescentStates.push({bulb,panelIndex,base:.72,flickers:Math.random()<.38,nextCheck:performance.now()+1500+Math.random()*4000,flickerUntil:0,panelDim:false});
 }
 const baseboardGeo=new THREE.BoxGeometry(cell,.12,.06);
 const baseboardMesh=new THREE.InstancedMesh(baseboardGeo,trimMat,wallInstances.length*2);
