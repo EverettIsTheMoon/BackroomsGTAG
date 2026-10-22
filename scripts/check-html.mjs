@@ -57,6 +57,9 @@ for (const marker of [
   'const monsterCell={x:mazeSize-1,z:mazeSize-1}',
   'yaw=grid[mazeSize-1][0].w[3]?0:-Math.PI/2;',
   'function updateMonster(dt,xrFrame)',
+  'const monsterLimbs=[]',
+  'for(const limb of monsterLimbs)',
+  'if(!(roomX===6&&roomZ===6)&&Math.random()>.58)continue;',
   'for(const [frequency,level] of [[119.8,.55],[239.6,.22],[359.4,.08]])',
   'new THREE.PointLight(0xffe8ad,.72,16,2)',
   'function playMonsterNoise()',
@@ -77,6 +80,7 @@ if (mazeTrialsPassed) {
     try {
       const context = { mazeSize: 13 };
       runInNewContext(generationCode, context);
+      if (!context.__wideRooms.length) { mazeTrialsPassed = false; mazeTrialDetail = 'trial ' + (trial + 1) + ' created no widened room'; break; }
       const grid = context.__grid;
       const dirs = context.__dirs;
       const queue = [[0, 0]];
