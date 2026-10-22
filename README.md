@@ -1,31 +1,38 @@
 # BackroomsGTAG
 
-A lightweight WebXR horror-game prototype inspired by Gorilla Tag locomotion.
+A lightweight WebXR liminal-horror prototype built with Three.js, designed with standalone VR performance in mind.
 
 ## Play
-1. Enable GitHub Pages in **Settings → Pages** using the `main` branch and `/(root)`.
-2. Open the Pages URL in Meta Quest Browser.
-3. Choose **Enter VR**. If VR is unavailable, use **Play Without VR** to test the desktop preview.
 
-## Implemented so far
-- WebXR immersive-VR entry using Three.js
-- Procedurally generated 13×13 maze with yellow walls, ceiling, floor, basic fog, and simple fluorescent-style light panels
-- Basic controller contact/hand-anchor movement prototype
-- Fixed virtual head height intended to prevent physical crouching/standing from changing in-game height
-- Desktop WASD movement and drag-to-look preview (no mobile joystick yet)
-- Basic wall and outer-boundary checks, plus a reset button
+- **Meta Quest:** Open the GitHub Pages link in Quest Browser and select **Enter VR**.
+- **Desktop:** Select **Play / Mobile Test** on a desktop browser, then use **WASD** and drag the mouse to look around.
+- **Mobile test:** Touch and swipe to move the test hand; a fast downward swipe at floor level tests the launch mechanic.
+
+The site deploys through GitHub Actions from the main branch. The page needs an internet connection to load Three.js from jsDelivr.
+
+## Current features
+
+- Procedurally generated 13×13 connected maze.
+- Procedural, locally generated wallpaper, carpet, ceiling-tile and damp-stain textures; no external texture-image downloads.
+- Instanced walls, baseboards, ceiling fixtures, grime decals, carpet marks and outlet parts to reduce draw calls.
+- Subtle ceiling lights with occasional flicker and synthesized low electrical hum.
+- A roaming low-poly creature that follows open maze connections, with occasional spatialized growls that get quieter with distance.
+- WebXR controller push locomotion, desktop WASD/mouse preview, mobile hand-swipe test, and a reset button.
+- VR eye-height normalization targets **1.52 metres** using the XR frame's viewer pose in the local-floor reference space.
+- Runtime errors and unhandled promise rejections are surfaced in the on-screen hint area.
 
 ## Known limitations
-- This is a foundation prototype, not a finished game.
-- No monster AI, objectives, multiplayer, jump/launch system, or actual sound/ambient hum is implemented yet.
-- Locomotion and collision are approximate and still need hands-on Quest testing; floor/wall contact detection is intentionally simple.
-- No custom hand models or hand-tracking gesture controls yet; the current movement uses controller poses.
-- Three.js is loaded from jsDelivr, so the page needs an internet connection.
-- GitHub Pages must be enabled before the play URL will work.
+
+- This remains a prototype, not a finished horror game. The creature wanders but does not yet chase, damage, or catch the player.
+- The monster and ambient sounds are synthesized in Web Audio; they are not recorded sound assets.
+- Hand-contact locomotion and wall collision are approximate, and need a real Quest headset test. There is no multiplayer yet.
+- Height normalization intentionally compensates for physical crouching/standing, so natural vertical crouching is not represented in the virtual world.
+- The project uses Three.js from jsDelivr, so it requires a network connection on first load and for refreshes.
 
 ## Controls
-- **VR:** move your tracked controllers against surfaces to push away; either controller can contribute.
-- **Desktop:** WASD to move, drag the mouse on the game view to look around. Touchscreen-only movement controls are not implemented yet.
-- **Reset:** returns to the starting position.
+
+- **VR:** Push tracked controllers against a wall or the floor to move; either controller can contribute.
+- **Desktop:** WASD to move and drag the mouse over the game view to look around.
+- **Reset:** Return to the starting position.
 
 This project uses Three.js and WebXR. WebXR requires HTTPS and a compatible browser/headset.
