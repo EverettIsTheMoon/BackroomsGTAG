@@ -36,6 +36,8 @@ for (const marker of [
   "fillText('NO EXIT'",
   'const signZ=-half+.115',
   'session.end().catch(()=>{})',
+  "addEventListener('blur',()=>{keys={};dragging=false;activeTouchId=null;velocity.set(0,0,0);})",
+  "document.addEventListener('visibilitychange'",
   "session.addEventListener('end'",
   'getViewerPose(renderer.xr.getReferenceSpace())',
   'new THREE.InstancedMesh(wallGeo',
