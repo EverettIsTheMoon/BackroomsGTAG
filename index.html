@@ -70,12 +70,12 @@ const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBas
 
 // Controller hands are intentionally simple, cheap capsule-like meshes.
 const controllers=[renderer.xr.getController(0),renderer.xr.getController(1)];
-const hands=[], previousHands=[null,null], wasTouching=[false,false];
+const hands=[], handAnchors=[null,null], wasTouching=[false,false];
 for(let i=0;i<2;i++){const c=controllers[i];rig.add(c);const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));c.add(hand);hands.push(hand);const ray=renderer.xr.getControllerGrip(i);rig.add(ray);}
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, yaw=0, pitch=0, keys={};let lastPlayerMove=new THREE.Vector3();
 const playerRadius=.22, virtualHeadHeight=1.62;
 function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);previousHands.fill(null);wasTouching.fill(false);}
+function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);velocity.set(0,0,0);yaw=0;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);lastPlayerMove.set(0,0,0);}
 reset();
 function startDesktop(){desktop=true;started=true;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='WASD to move · Drag to look · Find a way out.';renderer.setAnimationLoop(animate);}
 document.getElementById('start').addEventListener('click',startDesktop);
@@ -94,19 +94,33 @@ function animate(){
  if(renderer.xr.isPresenting){rig.position.y=virtualHeadHeight-camera.position.y;}
  if(desktop&&started){camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
  else if(renderer.xr.isPresenting&&started){
-   const playerMove=new THREE.Vector3();
+   const correction=new THREE.Vector3();
    for(let i=0;i<controllers.length;i++){
-     const c=controllers[i];const p=new THREE.Vector3();c.getWorldPosition(p);const touching=handTouches(p);
-     if(previousHands[i]&&touching&&wasTouching[i]){const handDelta=p.clone().sub(previousHands[i]).sub(lastPlayerMove);if(handDelta.lengthSq()<.18){playerMove.addScaledVector(handDelta,-2.8);}}
-     previousHands[i]=p.clone();wasTouching[i]=touching;
+     const c=controllers[i], p=new THREE.Vector3();c.getWorldPosition(p);
+     const touching=handTouches(p);
+     // Plant a hand anchor on first contact. While touching, move the player opposite
+     // the hand's motion so the hand stays approximately planted against the surface.
+     if(touching&&!wasTouching[i])handAnchors[i]=p.clone();
+     if(touching&&handAnchors[i]){
+       const delta=handAnchors[i].clone().sub(p);
+       delta.y=0;
+       if(delta.lengthSq()<1.0)correction.add(delta);
+       else handAnchors[i]=p.clone(); // avoid huge corrections if tracking jumps
+     }
+     if(!touching)handAnchors[i]=null;
+     wasTouching[i]=touching;
    }
-   // Horizontal momentum with damping; virtual height stays fixed regardless of real-world crouching.
-   velocity.x+=playerMove.x/dt;velocity.z+=playerMove.z/dt;
-   velocity.x*=Math.pow(.18,dt);velocity.z*=Math.pow(.18,dt);
-   const nx=rig.position.x+velocity.x*dt,nz=rig.position.z+velocity.z*dt;
-   if(!collides(nx,rig.position.z))rig.position.x=nx;else velocity.x=0;
-   if(!collides(rig.position.x,nz))rig.position.z=nz;else velocity.z=0;
-   lastPlayerMove.set(velocity.x*dt,0,velocity.z*dt);
+   // Contact correction drives movement; a little horizontal momentum remains after release.
+   correction.clampLength(0,0.16);
+   const moveX=correction.x, moveZ=correction.z;
+   if(!collides(rig.position.x+moveX,rig.position.z))rig.position.x+=moveX;
+   if(!collides(rig.position.x,rig.position.z+moveZ))rig.position.z+=moveZ;
+   velocity.x=moveX/dt;velocity.z=moveZ/dt;
+   velocity.x*=Math.pow(.24,dt);velocity.z*=Math.pow(.24,dt);
+   const driftX=velocity.x*dt,driftZ=velocity.z*dt;
+   if(!collides(rig.position.x+driftX,rig.position.z))rig.position.x+=driftX;else velocity.x=0;
+   if(!collides(rig.position.x,rig.position.z+driftZ))rig.position.z+=driftZ;else velocity.z=0;
+   lastPlayerMove.set(moveX+driftX,0,moveZ+driftZ);
  }
  if(!started){const t=performance.now()*.00008;camera.position.set(Math.sin(t)*.05,1.62,0);camera.lookAt(Math.sin(t+1)*.1,1.6,-3);}
  renderer.render(scene,camera);
