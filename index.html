@@ -493,7 +493,8 @@ function enterBackrooms(){
  document.getElementById('hint').textContent='You entered the Backrooms. Find a way out.';
 }
 function updateMonster(dt,xrFrame){
-  const playerDistance=Math.hypot(monster.position.x-rig.position.x,monster.position.z-rig.position.z);\n  if(performance.now()<monsterFrozenUntil){if(monsterMixer)monsterMixer.update(0);return;}
+  const playerDistance=Math.hypot(monster.position.x-rig.position.x,monster.position.z-rig.position.z);
+  if(performance.now()<monsterFrozenUntil){if(monsterMixer)monsterMixer.update(0);return;}
   const nowMs=performance.now();
   setLoopSound('monsterAmbience',playerDistance<18,THREE.MathUtils.clamp(.42-playerDistance/65,.08,.42));
   setLoopSound('chase',playerDistance<7,THREE.MathUtils.clamp(.72-playerDistance/18,.15,.72));
