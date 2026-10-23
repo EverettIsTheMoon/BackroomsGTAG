@@ -723,7 +723,11 @@ function animate(timestamp,xrFrame){
  lastPlayerX=rig.position.x;lastPlayerZ=rig.position.z;
  // local-floor tracks the headset's real height. Do not counter-offset it, which can hold
  // a crouched/low entry pose and make the player appear buried in the floor.
- if(renderer.xr.isPresenting){headOffset.position.y=0;}
+ if(renderer.xr.isPresenting){
+   // Lock virtual eye height regardless of real-world crouching/standing.
+   // rig.position.y remains independent for actual hand-locomotion jumps.
+   headOffset.position.y=1.6-camera.position.y;
+ }
  const now=performance.now();
  for(const state of fluorescentStates){
    if(!state.flickers)continue;
