@@ -318,6 +318,7 @@ const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBas
 const monster=new THREE.Group();
 const monsterVisual=new THREE.Group();monster.add(monsterVisual);
 const monsterLimbs=[];
+let monsterMixer=null, monsterWalkAction=null;
 scene.add(monster);monster.visible=false;
 const monsterTexture=textureLoader.load('assets/monster-texture.jpg');
 monsterTexture.colorSpace=THREE.SRGBColorSpace;
@@ -326,6 +327,13 @@ monsterTexture.anisotropy=Math.min(2,renderer.capabilities.getMaxAnisotropy());
 const monsterLoader=new GLTFLoader();
 monsterLoader.load('assets/monster.glb',gltf=>{
   const model=gltf.scene;
+  // Use a real walk clip if the supplied GLB contains one.
+  if(gltf.animations&&gltf.animations.length){
+    monsterMixer=new THREE.AnimationMixer(model);
+    const walkClip=gltf.animations.find(clip=>/walk|run|move/i.test(clip.name))||gltf.animations[0];
+    monsterWalkAction=monsterMixer.clipAction(walkClip);
+    monsterWalkAction.play();
+  }
   model.traverse(node=>{
     if(!node.isMesh)return;
     node.castShadow=false;node.receiveShadow=false;
@@ -402,9 +410,21 @@ function startMonsterAudio(){
     nextMonsterNoiseAt=performance.now()+4500+Math.random()*5000;
   }catch(e){/* Audio is optional; the creature still roams without it. */}
 }
+function monsterCollides(x,z){
+  const r=.38;
+  if(Math.abs(x)>half-.28||Math.abs(z)>half-.28)return true;
+  for(const b of wallBoxes){
+    if(x+r>b.minX&&x-r<b.maxX&&z+r>b.minZ&&z-r<b.maxZ)return true;
+  }
+  for(const b of roomPillarBoxes){
+    if(x+r>b.minX&&x-r<b.maxX&&z+r>b.minZ&&z-r<b.maxZ)return true;
+  }
+  return false;
+}
 function chooseMonsterTarget(){
   let choices=dirs.map(d=>({x:monsterCell.x+d[0],z:monsterCell.z+d[1],wall:d[2]}))
-    .filter(n=>n.x>=0&&n.z>=0&&n.x<mazeSize&&n.z<mazeSize&&!grid[monsterCell.z][monsterCell.x].w[n.wall]);
+    .filter(n=>n.x>=0&&n.z>=0&&n.x<mazeSize&&n.z<mazeSize&&!grid[monsterCell.z][monsterCell.x].w[n.wall])
+    .filter(n=>!monsterCollides(cellWorldX(n.x),cellWorldZ(n.z)));
   if(choices.length>1&&monsterPreviousCell){
     const forward=choices.filter(n=>n.x!==monsterPreviousCell.x||n.z!==monsterPreviousCell.z);
     if(forward.length)choices=forward;
@@ -451,18 +471,42 @@ function updateMonster(dt,xrFrame){
   if(playerDistance<1.65&&nowMs-lastNearScareAt>16000){playGameSound('jumpscare');playGameSound('monsterGrowl');lastNearScareAt=nowMs;}
   const tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z);
   const dx=tx-monster.position.x,dz=tz-monster.position.z,dist=Math.hypot(dx,dz);
-  if(dist<.09){
+  let walking=dist>=.045;
+  if(!walking){
+    // Snap only the tiny remaining distance so position never accumulates route drift.
+    monster.position.x=tx;monster.position.z=tz;
     monsterCell.x=monsterTargetCell.x;monsterCell.z=monsterTargetCell.z;
     chooseMonsterTarget();
   }else{
     const speed=1.05,step=Math.min(dist,speed*dt);
-    monster.position.x+=dx/dist*step;monster.position.z+=dz/dist*step;
-    monster.rotation.y=Math.atan2(-dx,-dz);
+    const sx=dx/dist*step,sz=dz/dist*step;
+    // Sweep in short steps and test collision before moving, so the creature cannot cut through walls.
+    const pieces=Math.max(1,Math.ceil(step/.06));
+    let blocked=false;
+    for(let i=1;i<=pieces;i++){
+      const nx=monster.position.x+sx/pieces, nz=monster.position.z+sz/pieces;
+      if(monsterCollides(nx,nz)){blocked=true;break;}
+      monster.position.x=nx;monster.position.z=nz;
+    }
+    if(blocked){
+      // Recover at the current valid cell instead of snapping through the obstruction.
+      monster.position.x=cellWorldX(monsterCell.x);
+      monster.position.z=cellWorldZ(monsterCell.z);
+      chooseMonsterTarget();
+      walking=false;
+    }
+    if(walking)monster.rotation.y=Math.atan2(-dx,-dz);
   }
   const t=performance.now()*.006;
-  const gait=dist>=.09?Math.sin(t*1.8):Math.sin(t*.5)*.08;
-  monsterVisual.position.y=.025+Math.abs(Math.sin(t))*.045;
-  monsterVisual.rotation.z=Math.sin(t*.65)*.018;
+  const gait=walking?Math.sin(t*1.8):Math.sin(t*.5)*.08;
+  monsterVisual.position.y=.025+(walking?Math.abs(Math.sin(t*2.2))*.045:Math.abs(Math.sin(t))*.008);
+  monsterVisual.rotation.z=walking?Math.sin(t*1.1)*.018:Math.sin(t*.4)*.006;
+  if(monsterMixer)monsterMixer.update(dt);
+  // Static/non-rigged models still get a lightweight procedural body gait.
+  if(!monsterMixer&&monsterVisual.children.length){
+    const body=monsterVisual.children[0];
+    if(body){body.rotation.z=walking?Math.sin(t*1.8)*.018:0;}
+  }
   for(const limb of monsterLimbs){
     limb.mesh.rotation.z=limb.restZ;
     limb.mesh.rotation.x=limb.kind==='arm'?gait*limb.side*.22:-gait*limb.side*.28;
