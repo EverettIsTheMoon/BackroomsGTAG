@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.6 · ROOM VARIATION</div></div><button id="reset" class="secondary">RESET</button></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.6 · ROOM VARIATION</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile test: swipe to move the hand. In VR, keep your head height steady and listen for the creature.</p></section>
  <div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span>NO EXIT FOUND</span></div>
 </div>
@@ -508,12 +508,44 @@ for(let i=0;i<2;i++){
 }
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 const playerRadius=.22, ceilingHeadClearance=.28;
+let spectatingMonster=false;
 const TARGET_VR_EYE_HEIGHT=1.52;
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){rig.position.set(-half+cell*.7,0,half-cell*.7);headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
+function reset(){spectatingMonster=false;updateSpectateButton();rig.position.set(-half+cell*.7,0,half-cell*.7);headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
 reset();
 function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;testHand.visible=mobileTest;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,.55,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,1.52,0);}renderer.setAnimationLoop(animate);}
+function updateSpectateButton(){
+ const b=document.getElementById('spectate');
+ b.textContent=spectatingMonster?'RETURN TO PLAYER':'SPECTATE MONSTER';
+ b.setAttribute('aria-pressed',String(spectatingMonster));
+ b.classList.toggle('secondary',!spectatingMonster);
+}
+function toggleMonsterSpectate(){
+ if(renderer.xr.isPresenting){document.getElementById('hint').textContent='Monster spectating is available in mobile/desktop play, not while using the VR headset.';return;}
+ if(!started){document.getElementById('hint').textContent='Start the game first, then spectate the monster.';return;}
+ spectatingMonster=!spectatingMonster;
+ updateSpectateButton();
+ document.getElementById('hint').textContent=spectatingMonster?'Spectating monster · press RETURN TO PLAYER to resume.':'Back to player view.';
+}
+document.getElementById('spectate').addEventListener('click',toggleMonsterSpectate);
+function updateMonsterSpectatorCamera(){
+ // Keep the chase camera inside walkable maze space. Try several distances, shortening the
+ // camera boom whenever a wall, pillar, or outer boundary would be crossed.
+ const target=new THREE.Vector3(monster.position.x,1.12,monster.position.z);
+ const behindX=Math.sin(monster.rotation.y),behindZ=Math.cos(monster.rotation.y);
+ let chosen=null;
+ for(const distance of [2.65,2.2,1.75,1.3,.9,.55]){
+   const x=monster.position.x+behindX*distance;
+   const z=monster.position.z+behindZ*distance;
+   if(!collides(x,z)){chosen=new THREE.Vector3(x,Math.min(wallH-.38,1.72),z);break;}
+ }
+ if(!chosen)chosen=new THREE.Vector3(monster.position.x,1.35,monster.position.z);
+ // If the monster is near the ceiling, lower the camera; never place it above the Backrooms roof.
+ chosen.y=Math.min(chosen.y,wallH-.32);
+ camera.position.set(chosen.x-rig.position.x,chosen.y-rig.position.y-headOffset.position.y,chosen.z-rig.position.z);
+ camera.lookAt(target);
+}
 document.getElementById('start').addEventListener('click',startDesktop);
 document.getElementById('enter').addEventListener('click',async()=>{startMonsterAudio();try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});return;}const session=await navigator.xr.requestSession('immersive-vr',{requiredFeatures:['local-floor'],optionalFeatures:['bounded-floor']});try{await renderer.xr.setSession(session);}catch(e){session.end().catch(()=>{});throw e;}
 session.addEventListener('end',()=>{
@@ -584,7 +616,11 @@ function animate(timestamp,xrFrame){
    }
  }
  if(started){if(!monster.visible)monster.visible=true;updateMonster(dt,xrFrame);}
- if(mobileTest&&started){
+ if(spectatingMonster&&started&&!renderer.xr.isPresenting){
+   testHand.visible=false;
+   updateMonsterSpectatorCamera();
+ }else if(mobileTest&&started){
+   testHand.visible=true;
    // Swipe velocity drives the test hand; a quicker swipe gives a faster vertical hand motion.
    handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.005,1.8);
    // Floor contact plus a fast downward hand stroke launches the player upward.
@@ -606,7 +642,7 @@ function animate(timestamp,xrFrame){
    testHand.position.y=handY;
    // Third-person chase view, limited to the mobile test mode.
    camera.position.set(0,1.62,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.20,handY,-.40);
- }else if(desktop&&started){camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
+ }else if(desktop&&started){testHand.visible=false;camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
  else if(renderer.xr.isPresenting&&started){
    const correction=new THREE.Vector3();let anyTouch=false;
    for(let i=0;i<controllers.length;i++){
