@@ -613,10 +613,10 @@ function makeFinger(hand,x,z,lengths,spread,isThumb=false){
  const joints=[];let parent=base;
  for(let j=0;j<lengths.length;j++){
   const pivot=new THREE.Group();if(j>0)pivot.position.z=-lengths[j-1];parent.add(pivot);joints.push(pivot);
-  const seg=new THREE.Mesh(new THREE.CapsuleGeometry(isThumb?.010:.0085,Math.max(.012,lengths[j]-.018),2,6),skinHandMat);
+  const seg=new THREE.Mesh(new THREE.CapsuleGeometry(isThumb?.011:.0095,Math.max(.012,lengths[j]-.018),4,10),skinHandMat);
   seg.rotation.x=Math.PI/2;seg.position.z=-lengths[j]*.5;pivot.add(seg);
-  const knuckle=new THREE.Mesh(new THREE.SphereGeometry(isThumb?.011:.009,7,5),skinLightMat);knuckle.position.z=-.006;pivot.add(knuckle);
-  if(j===lengths.length-1){const nail=new THREE.Mesh(new THREE.BoxGeometry(isThumb?.010:.008,.002,Math.max(.012,lengths[j]*.34)),nailMat);nail.position.set(0,.008,-lengths[j]*.53);pivot.add(nail);}
+  const knuckle=new THREE.Mesh(new THREE.SphereGeometry(isThumb?.012:.010,10,8),skinLightMat);knuckle.position.z=-.006;pivot.add(knuckle);
+  if(j===lengths.length-1){const nail=new THREE.Mesh(new THREE.BoxGeometry(isThumb?.011:.009,.0025,Math.max(.012,lengths[j]*.38)),nailMat);nail.position.set(0,.008,-lengths[j]*.53);pivot.add(nail);}
   parent=pivot;
  }
  return {base,joints,spread,isThumb};
@@ -624,8 +624,8 @@ function makeFinger(hand,x,z,lengths,spread,isThumb=false){
 function createDetailedHand(isLeft){
  const root=new THREE.Group();root.name=isLeft?'Procedural Left Hand':'Procedural Right Hand';
  const wrist=new THREE.Mesh(new THREE.CylinderGeometry(.027,.033,.055,10),skinHandMat);wrist.rotation.x=Math.PI/2;wrist.position.set(0,0,.025);root.add(wrist);
- const palm=new THREE.Mesh(new THREE.SphereGeometry(1,12,9),skinHandMat);palm.scale.set(.047,.018,.061);palm.position.set(0,0,-.018);root.add(palm);
- const heel=new THREE.Mesh(new THREE.SphereGeometry(1,9,7),skinLightMat);heel.scale.set(.034,.014,.028);heel.position.set(0,-.004,.012);root.add(heel);
+ const palm=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),skinHandMat);palm.scale.set(.047,.018,.061);palm.position.set(0,0,-.018);root.add(palm);
+ const heel=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),skinLightMat);heel.scale.set(.034,.014,.028);heel.position.set(0,-.004,.012);root.add(heel);
  const fingers=[];
  fingers.push(makeFinger(root,-.034,-.052,[.034,.027,.021],-.10));
  fingers.push(makeFinger(root,-.014,-.065,[.041,.031,.024],-.035));
@@ -633,7 +633,7 @@ function createDetailedHand(isLeft){
  fingers.push(makeFinger(root,.031,-.056,[.041,.030,.023],.10));
  const thumb=makeFinger(root,isLeft?-.046:.046,-.012,[.031,.026,.021],isLeft?-.68:.68,true);
  thumb.base.rotation.y=isLeft?-.35:.35;fingers.push(thumb);
- for(let i=0;i<3;i++){const tendon=new THREE.Mesh(new THREE.CapsuleGeometry(.0022,.035,1,4),skinLightMat);tendon.rotation.x=Math.PI/2;tendon.position.set((i-1)*.015,.014,-.045);root.add(tendon);}
+ for(let i=0;i<3;i++){const tendon=new THREE.Mesh(new THREE.CapsuleGeometry(.0025,.035,2,6),skinLightMat);tendon.rotation.x=Math.PI/2;tendon.position.set((i-1)*.015,.014,-.045);root.add(tendon);}
  root.traverse(o=>{if(o.isMesh){o.frustumCulled=true;o.castShadow=false;o.receiveShadow=false;}});
  return {root,fingers,isLeft};
 }
@@ -756,6 +756,7 @@ function handTouches(p){
   for(const b of roomPillarBoxes){if(p.y>.08&&p.y<wallH+.12&&p.x>b.minX-.16&&p.x<b.maxX+.16&&p.z>b.minZ-.16&&p.z<b.maxZ+.16)return true;}
   return false;
 }
+const _portalHeadWorld=new THREE.Vector3();
 function animate(timestamp,xrFrame){
  const dt=Math.min(clock.getDelta(),.025);
  const travelNow=performance.now();
@@ -791,7 +792,15 @@ function animate(timestamp,xrFrame){
    }
  }
  if(started&&!scareActive){if(!monster.visible)monster.visible=true;
-   if(lobbyMode&&!renderer.xr.isPresenting&&Math.hypot(rig.position.x-(lobbyCenterX-4.45),rig.position.z)<1.15){enterBackrooms();}
+   if(lobbyMode){
+     // Use the tracked headset's world position as well as the rig. In room-scale VR,
+     // the player can physically walk toward the portal without moving the rig itself.
+     camera.getWorldPosition(_portalHeadWorld);
+     if(Math.hypot(_portalHeadWorld.x-(lobbyCenterX-4.45),_portalHeadWorld.z)<1.3 ||
+        Math.hypot(rig.position.x-(lobbyCenterX-4.45),rig.position.z)<1.3){
+       enterBackrooms();
+     }
+   }
    updateMonster(dt,xrFrame);
  }
  if(scareActive){
