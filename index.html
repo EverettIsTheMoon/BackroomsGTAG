@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 1.1 · REPEAT JUMPSCARES & FACING FIX</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 1.2 · REAL VR HEIGHT & CONTROLLER ALIGNMENT</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile: use the joystick to move and drag to look. In VR, push off walls and the floor.</p></section>
  <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span id="areaLabel">LOBBY</span></div>
 </div>
@@ -619,7 +619,8 @@ const playerRadius=.22, ceilingHeadClearance=.28;
 let spectatingMonster=false;
 let monsterFrozenUntil=0, playerProtectedUntil=0;
 let scareActive=false,scareEndsAt=0,savedScarePosition=null,savedScareYaw=0,savedScarePitch=0;
-const TARGET_VR_EYE_HEIGHT=1.52;
+// Use the headset's real tracked height. Artificially correcting the camera alone
+// separates the view from the tracked controller poses and prevents reaching the floor.
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 function collides(x,z){if(lobbyMode){return x<lobbyCenterX-5.05||x>lobbyCenterX+5.05||z< -5.05||z>5.05;}if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
 function reset(){scareActive=false;scareMonsterRoot.visible=false;keys={};joyX=joyY=0;spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);yaw=Math.PI/2;pitch=0;document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
@@ -711,15 +712,9 @@ function animate(timestamp,xrFrame){
    lastFootstepMoveAt=travelNow;
  }
  lastPlayerX=rig.position.x;lastPlayerZ=rig.position.z;
- // XRViewerPose.transform is measured in the configured local-floor reference space, where Y=0 is floor level.
- // Lock the virtual eye position to 1.52m every frame so physical crouching/standing doesn't change game height.
- if(renderer.xr.isPresenting&&xrFrame){
-   try{
-     const pose=xrFrame.getViewerPose(renderer.xr.getReferenceSpace());
-     rig.position.y=0;
-     if(pose&&Number.isFinite(pose.transform.position.y))headOffset.position.y=TARGET_VR_EYE_HEIGHT-pose.transform.position.y;
-   }catch(e){/* Keep the last valid height for this frame if tracking temporarily drops out. */}
- }
+ // local-floor already puts Y=0 at the real floor. Keep the rig and camera offset at zero
+ // so real head height and controller poses stay in the same tracked coordinate space.
+ if(renderer.xr.isPresenting){rig.position.y=0;headOffset.position.y=0;}
  const now=performance.now();
  for(const state of fluorescentStates){
    if(!state.flickers)continue;
