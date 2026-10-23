@@ -12,9 +12,9 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 1.3 · REBUILT VR HAND LOCOMOTION</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
- <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile: use the joystick to move and drag to look. In VR, push off walls and the floor.</p></section>
- <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span id="areaLabel">LOBBY</span></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 1.4 · JOYSTICK VR MOVEMENT</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
+ <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Use the left joystick to move and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile: use the joystick to move and drag to look. VR: left joystick moves you; hand models load from assets/left-hand.glb and assets/right-hand.glb.</p></section>
+ <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: left joystick to move.</span><span id="areaLabel">LOBBY</span></div>
 </div>
 <script>
 function showGameError(message){
@@ -604,13 +604,28 @@ for(let i=0;i<3;i++){const f=new THREE.Mesh(fingerGeo,skinMat);f.position.set((i
 testHand.position.set(.32,1.15,-.58);testHand.visible=false;
 
 const controllers=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
-const handAnchors=[null,null], wasTouching=[false,false], controllerConnected=[false,false];
+const controllerConnected=[false,false], handModels=[null,null];
+const handLoader=new GLTFLoader();
+// Supply the two models in the assets folder using these exact filenames.
+const handModelPaths=['assets/left-hand.glb','assets/right-hand.glb'];
+function fitHandModel(root){
+  root.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(root), size=bounds.getSize(new THREE.Vector3());
+  const largest=Math.max(size.x,size.y,size.z);
+  if(largest>0)root.scale.multiplyScalar(.24/largest);
+  root.updateMatrixWorld(true);
+  const center=new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3());
+  root.position.sub(center);
+  root.traverse(obj=>{if(obj.isMesh){obj.frustumCulled=true;obj.castShadow=false;obj.receiveShadow=false;}});
+}
 for(let i=0;i<2;i++){
- const c=controllers[i];rig.add(c);
- const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),new THREE.MeshStandardMaterial({color:i===0?0xd8c18a:0xb9c6c7,roughness:.8}));
- hand.visible=false;c.add(hand);
- c.addEventListener('connected',()=>{controllerConnected[i]=true;hand.visible=true;});
- c.addEventListener('disconnected',()=>{controllerConnected[i]=false;handAnchors[i]=null;wasTouching[i]=false;hand.visible=false;});
+ const c=controllers[i];rig.add(c);c.visible=false;
+ c.addEventListener('connected',()=>{controllerConnected[i]=true;c.visible=true;if(handModels[i])handModels[i].visible=true;});
+ c.addEventListener('disconnected',()=>{controllerConnected[i]=false;c.visible=false;if(handModels[i])handModels[i].visible=false;});
+ handLoader.load(handModelPaths[i],gltf=>{
+   const model=gltf.scene;fitHandModel(model);c.add(model);handModels[i]=model;
+   model.visible=controllerConnected[i];
+ },undefined,error=>console.warn('Could not load '+handModelPaths[i]+'. Add the model to the assets folder.',error));
 }
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 // Declare mobile input state before reset() uses it during startup.
@@ -677,7 +692,7 @@ session.addEventListener('end',()=>{
   document.getElementById('hint').textContent='VR session ended. Enter VR to keep exploring.';
   if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});
 });
-started=true;desktop=false;mobileTest=false;testHand.visible=false;monster.visible=true;headOffset.position.set(0,0,0);camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push against walls or the floor to move. Listen for the roaming entity.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});}});
+started=true;desktop=false;mobileTest=false;testHand.visible=false;monster.visible=true;headOffset.position.set(0,0,0);camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Left joystick to move. Listen for the roaming entity.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});}});
 document.getElementById('reset').addEventListener('click',reset);
 addEventListener('keydown',e=>{if(!scareActive)keys[e.key.toLowerCase()]=true;if(e.key==='Escape'&&!scareActive)document.getElementById('panel').classList.remove('hidden');});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -774,43 +789,33 @@ function animate(timestamp,xrFrame){
    rig.position.y=0;
  }else if(desktop&&started){testHand.visible=false;camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
  else if(renderer.xr.isPresenting&&started){
-    // Gorilla Tag-style anchored hands: body moves opposite a planted hand, including vertically.
-    handCorrection.set(0,0,0);let contactCount=0;
-    for(let i=0;i<controllers.length;i++){
-      if(!controllerConnected[i]){handAnchors[i]=null;wasTouching[i]=false;continue;}
-      const p=new THREE.Vector3();controllers[i].getWorldPosition(p);
-      const touching=handTouches(p);
-      if(touching&&!wasTouching[i])handAnchors[i]=p.clone();
-      if(touching&&handAnchors[i]){
-        const delta=handAnchors[i].clone().sub(p);
-        if(delta.lengthSq()<1.44){handCorrection.add(delta);contactCount++;}
-        else handAnchors[i]=p.clone();
-      }else if(!touching)handAnchors[i]=null;
-      wasTouching[i]=touching;
+    // Standard joystick locomotion: the left controller's thumbstick moves the player.
+    const session=renderer.xr.getSession();
+    let moveX=0,moveY=0;
+    if(session){
+      for(const source of session.inputSources){
+        if(source.handedness!=='left'||!source.gamepad)continue;
+        const axes=source.gamepad.axes;
+        if(axes.length>=4){moveX=axes[2]||0;moveY=axes[3]||0;}
+        else{moveX=axes[0]||0;moveY=axes[1]||0;}
+        break;
+      }
     }
-    if(contactCount){
-      handCorrection.multiplyScalar(1/contactCount).clampLength(0,.20);
-      const oldX=rig.position.x,oldY=rig.position.y,oldZ=rig.position.z;
-      const nx=oldX+handCorrection.x,nz=oldZ+handCorrection.z;
-      if(!collides(nx,oldZ))rig.position.x=nx;else velocity.x=0;
-      if(!collides(rig.position.x,nz))rig.position.z=nz;else velocity.z=0;
-      rig.position.y=THREE.MathUtils.clamp(oldY+handCorrection.y,0,maxPlayerRise);
-      const actual=new THREE.Vector3(rig.position.x-oldX,rig.position.y-oldY,rig.position.z-oldZ);
-      velocity.x=THREE.MathUtils.clamp(actual.x/Math.max(dt,.008),-5.5,5.5)*.72;
-      velocity.y=THREE.MathUtils.clamp(actual.y/Math.max(dt,.008),-5.5,5.5)*.82;
-      velocity.z=THREE.MathUtils.clamp(actual.z/Math.max(dt,.008),-5.5,5.5)*.72;
-      if(performance.now()-lastWallHitAt>700&&actual.length()>.025){playGameSound('wallHit');lastWallHitAt=performance.now();}
-    }else{
-      const drag=Math.pow(.16,dt);
-      velocity.x*=drag;velocity.z*=drag;velocity.y-=gravity*dt;
-      const dx=velocity.x*dt,dz=velocity.z*dt,dy=velocity.y*dt;
-      if(!collides(rig.position.x+dx,rig.position.z))rig.position.x+=dx;else velocity.x=0;
-      if(!collides(rig.position.x,rig.position.z+dz))rig.position.z+=dz;else velocity.z=0;
-      const nextY=rig.position.y+dy;
-      if(nextY<=0){rig.position.y=0;velocity.y=0;}
-      else if(nextY>=maxPlayerRise){rig.position.y=maxPlayerRise;velocity.y=Math.min(0,velocity.y);}
-      else rig.position.y=nextY;
-    }
+    const deadzone=.16;
+    if(Math.abs(moveX)<deadzone)moveX=0;
+    if(Math.abs(moveY)<deadzone)moveY=0;
+    const forward=new THREE.Vector3();
+    camera.getWorldDirection(forward);forward.y=0;
+    if(forward.lengthSq()>0)forward.normalize();
+    const right=new THREE.Vector3(-forward.z,0,forward.x);
+    const wish=new THREE.Vector3().addScaledVector(forward,-moveY).addScaledVector(right,moveX);
+    if(wish.lengthSq()>1)wish.normalize();
+    const speed=3.0*dt;
+    const nx=rig.position.x+wish.x*speed,nz=rig.position.z+wish.z*speed;
+    if(!collides(nx,rig.position.z))rig.position.x=nx;
+    if(!collides(rig.position.x,nz))rig.position.z=nz;
+    rig.position.y=0;
+    velocity.set(0,0,0);
   }
   if(!started){const t=performance.now()*.00008;camera.position.set(Math.sin(t)*.05,1.62,0);camera.lookAt(Math.sin(t+1)*.1,1.6,-3);}
  renderer.render(scene,camera);
