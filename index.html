@@ -623,6 +623,7 @@ let scareActive=false,scareEndsAt=0,savedScarePosition=null,savedScareYaw=0,save
 // separates the view from the tracked controller poses and prevents reaching the floor.
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 const gravity=9.8, maxPlayerRise=wallH-1.82, handCorrection=new THREE.Vector3();
+let xrHeadHeightReference=null;
 function collides(x,z){if(lobbyMode){return x<lobbyCenterX-5.05||x>lobbyCenterX+5.05||z< -5.05||z>5.05;}if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
 function reset(){scareActive=false;scareMonsterRoot.visible=false;keys={};joyX=joyY=0;spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);yaw=Math.PI/2;pitch=0;document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;velocity.set(0,0,0);testHand.position.y=handY;}
 reset();
@@ -677,7 +678,7 @@ session.addEventListener('end',()=>{
   document.getElementById('hint').textContent='VR session ended. Enter VR to keep exploring.';
   if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});
 });
-started=true;desktop=false;mobileTest=false;testHand.visible=false;monster.visible=true;headOffset.position.set(0,0,0);camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push against walls or the floor to move. Listen for the roaming entity.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});}});
+started=true;desktop=false;mobileTest=false;testHand.visible=false;monster.visible=true;xrHeadHeightReference=null;headOffset.position.set(0,0,0);camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push against walls or the floor to move. Listen for the roaming entity.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});}});
 document.getElementById('reset').addEventListener('click',reset);
 addEventListener('keydown',e=>{if(!scareActive)keys[e.key.toLowerCase()]=true;if(e.key==='Escape'&&!scareActive)document.getElementById('panel').classList.remove('hidden');});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -721,9 +722,9 @@ function animate(timestamp,xrFrame){
    lastFootstepMoveAt=travelNow;
  }
  lastPlayerX=rig.position.x;lastPlayerZ=rig.position.z;
- // local-floor already puts Y=0 at the real floor. Keep the rig and camera offset at zero
- // so real head height and controller poses stay in the same tracked coordinate space.
- if(renderer.xr.isPresenting){headOffset.position.y=0;}
+ // Compensate physical head-height changes so standing/crouching doesn't shift the virtual camera.
+ // Gorilla-style hand locomotion still moves the rig itself.
+ if(renderer.xr.isPresenting){const trackedHeadY=camera.position.y;if(xrHeadHeightReference===null)xrHeadHeightReference=trackedHeadY;headOffset.position.y=xrHeadHeightReference-trackedHeadY;}else{xrHeadHeightReference=null;}
  const now=performance.now();
  for(const state of fluorescentStates){
    if(!state.flickers)continue;
