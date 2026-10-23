@@ -604,28 +604,57 @@ for(let i=0;i<3;i++){const f=new THREE.Mesh(fingerGeo,skinMat);f.position.set((i
 testHand.position.set(.32,1.15,-.58);testHand.visible=false;
 
 const controllers=[renderer.xr.getControllerGrip(0),renderer.xr.getControllerGrip(1)];
-const controllerConnected=[false,false], handModels=[null,null];
-const handLoader=new GLTFLoader();
-// Supply the two models in the assets folder using these exact filenames.
-const handModelPaths=['assets/left-hand.glb','assets/right-hand.glb'];
-function fitHandModel(root){
-  root.updateMatrixWorld(true);
-  const bounds=new THREE.Box3().setFromObject(root), size=bounds.getSize(new THREE.Vector3());
-  const largest=Math.max(size.x,size.y,size.z);
-  if(largest>0)root.scale.multiplyScalar(.24/largest);
-  root.updateMatrixWorld(true);
-  const center=new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3());
-  root.position.sub(center);
-  root.traverse(obj=>{if(obj.isMesh){obj.frustumCulled=true;obj.castShadow=false;obj.receiveShadow=false;}});
+const controllerConnected=[false,false], handModels=[null,null], handRigData=[null,null];
+const skinHandMat=new THREE.MeshStandardMaterial({color:0xc99570,roughness:.78});
+const skinLightMat=new THREE.MeshStandardMaterial({color:0xe0b08b,roughness:.7});
+const nailMat=new THREE.MeshStandardMaterial({color:0xe7c6b2,roughness:.42});
+function makeFinger(hand,x,z,lengths,spread,isThumb=false){
+ const base=new THREE.Group();base.position.set(x,-.004,z);base.rotation.z=spread;hand.add(base);
+ const joints=[];let parent=base;
+ for(let j=0;j<lengths.length;j++){
+  const pivot=new THREE.Group();if(j>0)pivot.position.z=-lengths[j-1];parent.add(pivot);joints.push(pivot);
+  const seg=new THREE.Mesh(new THREE.CapsuleGeometry(isThumb?.010:.0085,Math.max(.012,lengths[j]-.018),2,6),skinHandMat);
+  seg.rotation.x=Math.PI/2;seg.position.z=-lengths[j]*.5;pivot.add(seg);
+  const knuckle=new THREE.Mesh(new THREE.SphereGeometry(isThumb?.011:.009,7,5),skinLightMat);knuckle.position.z=-.006;pivot.add(knuckle);
+  if(j===lengths.length-1){const nail=new THREE.Mesh(new THREE.BoxGeometry(isThumb?.010:.008,.002,Math.max(.012,lengths[j]*.34)),nailMat);nail.position.set(0,.008,-lengths[j]*.53);pivot.add(nail);}
+  parent=pivot;
+ }
+ return {base,joints,spread,isThumb};
+}
+function createDetailedHand(isLeft){
+ const root=new THREE.Group();root.name=isLeft?'Procedural Left Hand':'Procedural Right Hand';
+ const wrist=new THREE.Mesh(new THREE.CylinderGeometry(.027,.033,.055,10),skinHandMat);wrist.rotation.x=Math.PI/2;wrist.position.set(0,0,.025);root.add(wrist);
+ const palm=new THREE.Mesh(new THREE.SphereGeometry(1,12,9),skinHandMat);palm.scale.set(.047,.018,.061);palm.position.set(0,0,-.018);root.add(palm);
+ const heel=new THREE.Mesh(new THREE.SphereGeometry(1,9,7),skinLightMat);heel.scale.set(.034,.014,.028);heel.position.set(0,-.004,.012);root.add(heel);
+ const fingers=[];
+ fingers.push(makeFinger(root,-.034,-.052,[.034,.027,.021],-.10));
+ fingers.push(makeFinger(root,-.014,-.065,[.041,.031,.024],-.035));
+ fingers.push(makeFinger(root,.010,-.067,[.045,.034,.026],.025));
+ fingers.push(makeFinger(root,.031,-.056,[.041,.030,.023],.10));
+ const thumb=makeFinger(root,isLeft?-.046:.046,-.012,[.031,.026,.021],isLeft?-.68:.68,true);
+ thumb.base.rotation.y=isLeft?-.35:.35;fingers.push(thumb);
+ for(let i=0;i<3;i++){const tendon=new THREE.Mesh(new THREE.CapsuleGeometry(.0022,.035,1,4),skinLightMat);tendon.rotation.x=Math.PI/2;tendon.position.set((i-1)*.015,.014,-.045);root.add(tendon);}
+ root.traverse(o=>{if(o.isMesh){o.frustumCulled=true;o.castShadow=false;o.receiveShadow=false;}});
+ return {root,fingers,isLeft};
+}
+function animateHandPose(data,grip,trigger,t){
+ if(!data)return;
+ // User-requested mapping: squeeze/grip curls the index; trigger curls the middle finger.
+ const curls=[.12+grip*.65,.10+grip*.72,trigger*.95+grip*.12,grip*.95,grip*.62];
+ for(let f=0;f<data.fingers.length;f++){const finger=data.fingers[f],amount=curls[f];for(let j=0;j<finger.joints.length;j++)finger.joints[j].rotation.x=amount*(j===finger.joints.length-1?1.25:1)*(finger.isThumb?.82:1);}
+ data.root.rotation.x=Math.sin(t*1.7+(data.isLeft?0:1))*.012;
 }
 for(let i=0;i<2;i++){
  const c=controllers[i];rig.add(c);c.visible=false;
- c.addEventListener('connected',()=>{controllerConnected[i]=true;c.visible=true;if(handModels[i])handModels[i].visible=true;});
- c.addEventListener('disconnected',()=>{controllerConnected[i]=false;c.visible=false;if(handModels[i])handModels[i].visible=false;});
- handLoader.load(handModelPaths[i],gltf=>{
-   const model=gltf.scene;fitHandModel(model);c.add(model);handModels[i]=model;
-   model.visible=controllerConnected[i];
- },undefined,error=>console.warn('Could not load '+handModelPaths[i]+'. Add the model to the assets folder.',error));
+ const handData=createDetailedHand(i===0);handRigData[i]=handData;handModels[i]=handData.root;c.add(handData.root);handData.root.visible=false;
+ c.addEventListener('connected',()=>{controllerConnected[i]=true;c.visible=true;handData.root.visible=true;});
+ c.addEventListener('disconnected',()=>{controllerConnected[i]=false;c.visible=false;handData.root.visible=false;});
+}
+function updateXRHandPoses(){
+ if(!renderer.xr.isPresenting)return;const session=renderer.xr.getSession();if(!session)return;const now=performance.now()*.001;
+ for(const source of session.inputSources){if(!source.gamepad)continue;const i=source.handedness==='left'?0:source.handedness==='right'?1:-1;if(i<0||!handRigData[i])continue;
+  const buttons=source.gamepad.buttons||[];const trigger=buttons[0]?buttons[0].value||0:0;const grip=buttons[1]?buttons[1].value||0:0;animateHandPose(handRigData[i],grip,trigger,now);
+ }
 }
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 // Declare mobile input state before reset() uses it during startup.
@@ -818,7 +847,8 @@ function animate(timestamp,xrFrame){
     velocity.set(0,0,0);
   }
   if(!started){const t=performance.now()*.00008;camera.position.set(Math.sin(t)*.05,1.62,0);camera.lookAt(Math.sin(t+1)*.1,1.6,-3);}
- renderer.render(scene,camera);
+ updateXRHandPoses();
+  renderer.render(scene,camera);
 }
 renderer.setAnimationLoop(animate);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.0));});
