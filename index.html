@@ -644,7 +644,7 @@ document.addEventListener('visibilitychange',()=>{
     monsterAudioContext.resume().catch(()=>{});
   }
 });
-let joyPointer=null,joyX=0,joyY=0,lookPointer=null;
+
 const joyBase=document.getElementById('joyBase'),joyKnob=document.getElementById('joyKnob');
 function updateJoy(e){const r=joyBase.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=39,len=Math.hypot(dx,dy),scale=len>max?max/len:1;joyX=dx*scale/max;joyY=dy*scale/max;joyKnob.style.transform='translate('+dx*scale+'px,'+dy*scale+'px)';}
 joyBase.addEventListener('pointerdown',e=>{if(!mobileTest||scareActive)return;joyPointer=e.pointerId;joyBase.setPointerCapture(e.pointerId);updateJoy(e);e.preventDefault();});
