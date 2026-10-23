@@ -6,15 +6,15 @@
 <meta name="theme-color" content="#b6a96e">
 <title>BackroomsGTAG</title>
 <style>
-:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#17170f;color:#fff}canvas{display:block;touch-action:none}#ui button{pointer-events:auto}#ui{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(12px,3vw,28px);text-shadow:0 2px 8px #000}#top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}#brand{font-weight:900;letter-spacing:.13em;font-size:clamp(15px,3vw,22px)}#status{font-size:12px;color:#ded8ad;margin-top:4px}#panel{align-self:center;max-width:540px;width:100%;margin:auto 0;background:#15150edb;border:1px solid #d5c77b55;border-radius:18px;padding:clamp(20px,5vw,36px);text-align:center;backdrop-filter:blur(8px);pointer-events:auto;box-shadow:0 18px 70px #0009}h1{margin:0 0 8px;font-size:clamp(28px,7vw,48px);letter-spacing:.04em}p{color:#d8d3b2;line-height:1.5;margin:8px 0 20px}button{border:0;border-radius:10px;padding:13px 18px;font-weight:800;font-size:15px;cursor:pointer;color:#1d1b10;background:#e2d48a;margin:4px}button.secondary{background:#363528;color:#eee8c7;border:1px solid #77704a}#bottom{font-size:12px;color:#d0cba8;display:flex;justify-content:space-between;gap:12px}#hint{max-width:75%}.hidden{display:none!important}@media(max-width:520px){#bottom{font-size:10px}#panel{margin:auto 0}}
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#17170f;color:#fff}canvas{display:block;touch-action:none}#ui button{pointer-events:auto}#ui{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(12px,3vw,28px);text-shadow:0 2px 8px #000}#top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}#brand{font-weight:900;letter-spacing:.13em;font-size:clamp(15px,3vw,22px)}#status{font-size:12px;color:#ded8ad;margin-top:4px}#panel{align-self:center;max-width:540px;width:100%;margin:auto 0;background:#15150edb;border:1px solid #d5c77b55;border-radius:18px;padding:clamp(20px,5vw,36px);text-align:center;backdrop-filter:blur(8px);pointer-events:auto;box-shadow:0 18px 70px #0009}h1{margin:0 0 8px;font-size:clamp(28px,7vw,48px);letter-spacing:.04em}p{color:#d8d3b2;line-height:1.5;margin:8px 0 20px}button{border:0;border-radius:10px;padding:13px 18px;font-weight:800;font-size:15px;cursor:pointer;color:#1d1b10;background:#e2d48a;margin:4px}button.secondary{background:#363528;color:#eee8c7;border:1px solid #77704a}#bottom{font-size:12px;color:#d0cba8;display:flex;justify-content:space-between;gap:12px}#hint{max-width:75%}.hidden{display:none!important}#mobileControls{position:fixed;inset:0;pointer-events:none;text-shadow:0 1px 5px #000}#joyBase{position:absolute;left:22px;bottom:30px;width:132px;height:132px;border-radius:50%;background:#d8d1a52b;border:2px solid #e5dda66b;pointer-events:auto;touch-action:none}#joyKnob{position:absolute;left:39px;top:39px;width:50px;height:50px;border-radius:50%;background:#e2d48a99;border:2px solid #fff0b5;transform:translate(0,0)}#lookHint{position:absolute;right:20px;bottom:22px;color:#fff0bd;font-size:11px;letter-spacing:.08em;opacity:.8}@media(max-width:520px){#bottom{font-size:10px}#panel{margin:auto 0}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"}}</script>
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.6 · ROOM VARIATION</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
- <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile test: swipe to move the hand. In VR, keep your head height steady and listen for the creature.</p></section>
- <div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span>NO EXIT FOUND</span></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.6 · ROOM VARIATION</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
+ <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile: use the joystick to move and drag to look. In VR, push off walls and the floor.</p></section>
+ <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span id="areaLabel">LOBBY</span></div>
 </div>
 <script>
 function showGameError(message){
@@ -304,6 +304,28 @@ for(const room of wideRooms){
   scene.add(cable);
 }
 
+// Simple spawn lobby with one usable portal. The portal returns players to the existing Backrooms maze.
+const lobbyCenterX=half+7.5;
+let lobbyMode=true;
+const lobbyFloor=new THREE.Mesh(new THREE.PlaneGeometry(11,11),new THREE.MeshStandardMaterial({color:0x343426,roughness:1}));
+lobbyFloor.rotation.x=-Math.PI/2;lobbyFloor.position.set(lobbyCenterX,.015,0);scene.add(lobbyFloor);
+const lobbyWallMat=mat(0x77704a,.98);
+function lobbyWall(x,y,z,w,h,d){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lobbyWallMat);m.position.set(x,y,z);scene.add(m);wallBoxes.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,minY:0,maxY:h});}
+lobbyWall(lobbyCenterX,1.35,-5.5,11,2.7,.18);
+lobbyWall(lobbyCenterX,1.35,5.5,11,2.7,.18);
+lobbyWall(lobbyCenterX+5.5,1.35,0,.18,2.7,11);
+const portalFrameMat=new THREE.MeshStandardMaterial({color:0xdecf78,emissive:0x8c741d,emissiveIntensity:1.8,roughness:.35});
+const portalCoreMat=new THREE.MeshBasicMaterial({color:0x8a9b62,transparent:true,opacity:.62,side:THREE.DoubleSide});
+const portal=new THREE.Group();portal.position.set(lobbyCenterX-4.45,1.35,0);scene.add(portal);
+const portalRing=new THREE.Mesh(new THREE.TorusGeometry(1.05,.12,8,32),portalFrameMat);portal.add(portalRing);
+const portalCore=new THREE.Mesh(new THREE.CircleGeometry(.96,32),portalCoreMat);portal.add(portalCore);
+const portalLabelCanvas=document.createElement('canvas');portalLabelCanvas.width=512;portalLabelCanvas.height=96;
+const plc=portalLabelCanvas.getContext('2d');plc.fillStyle='#18180f';plc.fillRect(0,0,512,96);plc.fillStyle='#f4eac0';plc.font='bold 42px sans-serif';plc.textAlign='center';plc.fillText('THE BACKROOMS',256,62);
+const portalLabel=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.6),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(portalLabelCanvas),transparent:true}));portalLabel.position.set(0,1.55,0);portal.add(portalLabel);
+const lobbySignCanvas=document.createElement('canvas');lobbySignCanvas.width=512;lobbySignCanvas.height=128;
+const lsc=lobbySignCanvas.getContext('2d');lsc.fillStyle='#17170f';lsc.fillRect(0,0,512,128);lsc.fillStyle='#e2d48a';lsc.font='bold 38px sans-serif';lsc.textAlign='center';lsc.fillText('BACKROOMS GTAG',256,52);lsc.fillStyle='#fff';lsc.font='24px sans-serif';lsc.fillText('WALK THROUGH THE PORTAL',256,91);
+const lobbySign=new THREE.Mesh(new THREE.PlaneGeometry(4.4,1.1),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(lobbySignCanvas)}));lobbySign.position.set(lobbyCenterX,2.05,-5.38);scene.add(lobbySign);
+const lobbyLight=new THREE.PointLight(0xe2d48a,1.1,15);lobbyLight.position.set(lobbyCenterX,2.3,0);scene.add(lobbyLight);
 const signZ=-half+.115;
 const sign=new THREE.Mesh(new THREE.BoxGeometry(.85,.35,.08),mat(0x29351d));sign.position.set(0,2.22,signZ);scene.add(sign);
 const signTexture=makeCanvasTexture(256,(ctx,size)=>{
@@ -463,12 +485,19 @@ function playMonsterNoise(){
   growl1.start(now);growl2.start(now);growl1.stop(now+2.82);growl2.stop(now+2.82);
   growl1.onended=()=>{try{mix.disconnect();filter.disconnect();panner.disconnect();envelope.disconnect();}catch(e){}};
 }
+function enterBackrooms(){
+ lobbyMode=false;
+ rig.position.set(-half+cell*.7,0,half-cell*.7);
+ velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;
+ document.getElementById('areaLabel').textContent='THE BACKROOMS';
+ document.getElementById('hint').textContent='You entered the Backrooms. Find a way out.';
+}
 function updateMonster(dt,xrFrame){
-  const playerDistance=Math.hypot(monster.position.x-rig.position.x,monster.position.z-rig.position.z);
+  const playerDistance=Math.hypot(monster.position.x-rig.position.x,monster.position.z-rig.position.z);\n  if(performance.now()<monsterFrozenUntil){if(monsterMixer)monsterMixer.update(0);return;}
   const nowMs=performance.now();
   setLoopSound('monsterAmbience',playerDistance<18,THREE.MathUtils.clamp(.42-playerDistance/65,.08,.42));
   setLoopSound('chase',playerDistance<7,THREE.MathUtils.clamp(.72-playerDistance/18,.15,.72));
-  if(playerDistance<1.65&&nowMs-lastNearScareAt>16000){playGameSound('jumpscare');playGameSound('monsterGrowl');lastNearScareAt=nowMs;}
+  if(nowMs>playerProtectedUntil&&playerDistance<1.65&&nowMs-lastNearScareAt>16000){playGameSound('jumpscare');playGameSound('monsterGrowl');lastNearScareAt=nowMs;}
   const chasing=playerDistance<7;
   const tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z);
   const dx=tx-monster.position.x,dz=tz-monster.position.z,dist=Math.hypot(dx,dz);
@@ -553,12 +582,13 @@ for(let i=0;i<2;i++){
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
 const playerRadius=.22, ceilingHeadClearance=.28;
 let spectatingMonster=false;
+let monsterFrozenUntil=0, playerProtectedUntil=0;
 const TARGET_VR_EYE_HEIGHT=1.52;
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
-function collides(x,z){if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){spectatingMonster=false;updateSpectateButton();rig.position.set(-half+cell*.7,0,half-cell*.7);headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
+function collides(x,z){if(lobbyMode){return x<lobbyCenterX-5.05||x>lobbyCenterX+5.05||z< -5.05||z>5.05;}if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
+function reset(){spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
 reset();
-function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;testHand.visible=mobileTest;document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Swipe up/down to move your hand fast. Slam it down to push off the floor.':'WASD to move · Drag to look · Find a way out.';if(mobileTest){camera.position.set(0,.55,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.16,handY,-.30);}else{camera.position.set(0,1.52,0);}renderer.setAnimationLoop(animate);}
+function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;testHand.visible=false;document.getElementById('mobileControls').classList.toggle('hidden',!mobileTest);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Joystick to move · drag anywhere else to look.':'WASD to move · Drag to look · Find the portal.';camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);renderer.setAnimationLoop(animate);}
 function updateSpectateButton(){
  const b=document.getElementById('spectate');
  b.textContent=spectatingMonster?'RETURN TO PLAYER':'SPECTATE MONSTER';
@@ -573,6 +603,16 @@ function toggleMonsterSpectate(){
  document.getElementById('hint').textContent=spectatingMonster?'Spectating monster · press RETURN TO PLAYER to resume.':'Back to player view.';
 }
 document.getElementById('spectate').addEventListener('click',toggleMonsterSpectate);
+document.getElementById('teleportMonster').addEventListener('click',()=>{
+ if(!started){document.getElementById('hint').textContent='Start the game first to teleport the monster.';return;}
+ if(lobbyMode){enterBackrooms(); }
+ const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+ let px=rig.position.x+forward.x*1.5,pz=rig.position.z+forward.z*1.5;
+ if(monsterCollides(px,pz)){px=rig.position.x-forward.x*1.5;pz=rig.position.z-forward.z*1.5;}
+ if(monsterCollides(px,pz)){px=rig.position.x;pz=rig.position.z;}
+ monster.position.set(px,0,pz);monster.visible=true;monsterFrozenUntil=performance.now()+3000;playerProtectedUntil=performance.now()+3000;
+ document.getElementById('hint').textContent='Monster teleported nearby · frozen for 3 seconds · spawn protection active!';
+});
 function updateMonsterSpectatorCamera(){
  // Keep the chase camera inside walkable maze space. Try several distances, shortening the
  // camera boom whenever a wall, pillar, or outer boundary would be crossed.
@@ -605,7 +645,7 @@ addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='Escape
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 let dragging=false,lastX=0,lastY=0;
 // Clear held movement keys when focus changes so WASD cannot get stuck after switching tabs.
-addEventListener('blur',()=>{keys={};dragging=false;activeTouchId=null;velocity.set(0,0,0);});
+addEventListener('blur',()=>{keys={};dragging=false;lookPointer=null;joyPointer=null;joyX=joyY=0;velocity.set(0,0,0);});
 document.addEventListener('visibilitychange',()=>{
   if(!monsterAudioContext)return;
   if(document.hidden){
@@ -614,10 +654,17 @@ document.addEventListener('visibilitychange',()=>{
     monsterAudioContext.resume().catch(()=>{});
   }
 });
-renderer.domElement.addEventListener('pointerdown',e=>{if(mobileTest){activeTouchId=e.pointerId;previousTouchY=e.clientY;previousTouchTime=performance.now();renderer.domElement.setPointerCapture(e.pointerId);return;}if(!desktop)return;dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
-renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
-renderer.domElement.addEventListener('pointercancel',e=>{if(e.pointerId===activeTouchId)activeTouchId=null;dragging=false;});
-renderer.domElement.addEventListener('pointermove',e=>{if(mobileTest&&e.pointerId===activeTouchId){const now=performance.now(), elapsed=Math.max(.008,(now-previousTouchTime)/1000), dy=e.clientY-previousTouchY;handVelocityY=THREE.MathUtils.clamp((-dy/elapsed)*.0105,-8.5,8.5);previousTouchY=e.clientY;previousTouchTime=now;return;}if(!desktop||!dragging)return;yaw-=(e.clientX-lastX)*.004;pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY;});
+let joyPointer=null,joyX=0,joyY=0,lookPointer=null;
+const joyBase=document.getElementById('joyBase'),joyKnob=document.getElementById('joyKnob');
+function updateJoy(e){const r=joyBase.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=39,len=Math.hypot(dx,dy),scale=len>max?max/len:1;joyX=dx*scale/max;joyY=dy*scale/max;joyKnob.style.transform='translate('+dx*scale+'px,'+dy*scale+'px)';}
+joyBase.addEventListener('pointerdown',e=>{if(!mobileTest)return;joyPointer=e.pointerId;joyBase.setPointerCapture(e.pointerId);updateJoy(e);e.preventDefault();});
+joyBase.addEventListener('pointermove',e=>{if(e.pointerId===joyPointer)updateJoy(e);});
+function releaseJoy(e){if(e.pointerId===joyPointer){joyPointer=null;joyX=joyY=0;joyKnob.style.transform='translate(0,0)';}}
+joyBase.addEventListener('pointerup',releaseJoy);joyBase.addEventListener('pointercancel',releaseJoy);
+renderer.domElement.addEventListener('pointerdown',e=>{if(mobileTest){lookPointer=e.pointerId;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);return;}if(!desktop)return;dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
+renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===lookPointer)lookPointer=null;dragging=false;});
+renderer.domElement.addEventListener('pointercancel',e=>{if(e.pointerId===lookPointer)lookPointer=null;dragging=false;});
+renderer.domElement.addEventListener('pointermove',e=>{if(mobileTest&&e.pointerId===lookPointer){yaw-=(e.clientX-lastX)*.006;pitch=Math.max(-1.25,Math.min(1.25,pitch-(e.clientY-lastY)*.006));lastX=e.clientX;lastY=e.clientY;return;}if(!desktop||!dragging)return;yaw-=(e.clientX-lastX)*.004;pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY;});
 function handTouches(p){if(p.y<.20)return true;for(const b of wallBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}for(const b of roomPillarBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}return false;}
 function animate(timestamp,xrFrame){
  const dt=Math.min(clock.getDelta(),.025);
@@ -659,33 +706,25 @@ function animate(timestamp,xrFrame){
      }
    }
  }
- if(started){if(!monster.visible)monster.visible=true;updateMonster(dt,xrFrame);}
+ if(started){if(!monster.visible)monster.visible=true;
+   if(lobbyMode&&!renderer.xr.isPresenting&&Math.hypot(rig.position.x-(lobbyCenterX-4.45),rig.position.z)<1.15){enterBackrooms();}
+   updateMonster(dt,xrFrame);
+ }
  if(spectatingMonster&&started&&!renderer.xr.isPresenting){
    testHand.visible=false;
    updateMonsterSpectatorCamera();
  }else if(mobileTest&&started){
-   testHand.visible=true;
-   // Swipe velocity drives the test hand; a quicker swipe gives a faster vertical hand motion.
-   handY=THREE.MathUtils.clamp(handY+handVelocityY*dt,.005,1.8);
-   // Floor contact plus a fast downward hand stroke launches the player upward.
-   mobilePushCooldown=Math.max(0,mobilePushCooldown-dt);
-   if(handY<=.10 && handVelocityY < -0.35 && mobilePushCooldown<=0){
-     mobilePushVelocity=Math.max(mobilePushVelocity,Math.min(4.2,2.2+Math.abs(handVelocityY)*.38));
-     mobilePushCooldown=.28;
-     if(performance.now()-lastJumpAt>450){playGameSound('jump');lastJumpAt=performance.now();}
-     handY=.12;
-     document.getElementById('hint').textContent='PUSH-OFF! Floor push detected.';
-   }
-   // Apply gravity and integrate the launch to the first-person camera rig.
-   mobilePushVelocity-=9.81*dt;
-   rig.position.y+=mobilePushVelocity*dt;
-   if(rig.position.y<=0){if(rig.position.y>-.02&&mobilePushVelocity<-.8&&performance.now()-lastLandingAt>500){playGameSound('landing');lastLandingAt=performance.now();}rig.position.y=0;if(mobilePushVelocity<0)mobilePushVelocity=0;}
-   const maxRigY=Math.max(0,wallH-ceilingHeadClearance-camera.position.y);
-   if(rig.position.y>maxRigY){rig.position.y=maxRigY;if(mobilePushVelocity>0)mobilePushVelocity=0;}
-   handVelocityY*=Math.pow(.42,dt);
-   testHand.position.y=handY;
-   // Third-person chase view, limited to the mobile test mode.
-   camera.position.set(0,1.62,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);testHand.position.set(.20,handY,-.40);
+   testHand.visible=false;
+   camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);
+   const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+   const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+   const wish=new THREE.Vector3().addScaledVector(forward,-joyY).addScaledVector(right,joyX);
+   if(wish.lengthSq()>1)wish.normalize();
+   const speed=3.15*dt;
+   const nx=rig.position.x+wish.x*speed,nz=rig.position.z+wish.z*speed;
+   if(!collides(nx,rig.position.z))rig.position.x=nx;
+   if(!collides(rig.position.x,nz))rig.position.z=nz;
+   rig.position.y=0;
  }else if(desktop&&started){testHand.visible=false;camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
  else if(renderer.xr.isPresenting&&started){
    const correction=new THREE.Vector3();let anyTouch=false;
