@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.9 · MOBILE FULLSCREEN</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 1.0 · RANDOM RESPAWN & CHASE PATHING</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile: use the joystick to move and drag to look. In VR, push off walls and the floor.</p></section>
  <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span id="areaLabel">LOBBY</span></div>
 </div>
@@ -504,11 +504,22 @@ function enterBackrooms(){
  document.getElementById('areaLabel').textContent='THE BACKROOMS';
  document.getElementById('hint').textContent='You entered the Backrooms. Find a way out.';
 }
+function cellAtWorld(x,z){
+  return {x:Math.max(0,Math.min(mazeSize-1,Math.round(x/cell+mazeSize/2-.5))),z:Math.max(0,Math.min(mazeSize-1,Math.round(z/cell+mazeSize/2-.5)))};
+}
+function monsterEdgeClear(x,z,nx,nz){
+  const ax=cellWorldX(x),az=cellWorldZ(z),bx=cellWorldX(nx),bz=cellWorldZ(nz);
+  const steps=Math.max(2,Math.ceil(Math.hypot(bx-ax,bz-az)/.18));
+  for(let i=1;i<steps;i++){const t=i/steps;if(monsterCollides(ax+(bx-ax)*t,az+(bz-az)*t))return false;}
+  return true;
+}
 function findChaseCell(){
-  const px=Math.max(0,Math.min(mazeSize-1,Math.round(rig.position.x/cell+mazeSize/2-.5))),pz=Math.max(0,Math.min(mazeSize-1,Math.round(rig.position.z/cell+mazeSize/2-.5)));
+  const playerCell=cellAtWorld(rig.position.x,rig.position.z),px=playerCell.x,pz=playerCell.z;
+  const actualCell=cellAtWorld(monster.position.x,monster.position.z);
+  if(!monsterCollides(cellWorldX(actualCell.x),cellWorldZ(actualCell.z))){monsterCell.x=actualCell.x;monsterCell.z=actualCell.z;}
   const key=(x,z)=>z*mazeSize+x,start=key(monsterCell.x,monsterCell.z),goal=key(px,pz);if(start===goal)return {x:px,z:pz};
   const queue=[{x:monsterCell.x,z:monsterCell.z}],previous=new Map([[start,null]]);let found=false;
-  for(let qi=0;qi<queue.length&&!found;qi++){const c=queue[qi];for(const d of dirs){const nx=c.x+d[0],nz=c.z+d[1];if(nx<0||nz<0||nx>=mazeSize||nz>=mazeSize||grid[c.z][c.x].w[d[2]])continue;const k=key(nx,nz);if(previous.has(k))continue;previous.set(k,key(c.x,c.z));queue.push({x:nx,z:nz});if(k===goal){found=true;break;}}}
+  for(let qi=0;qi<queue.length&&!found;qi++){const c=queue[qi];for(const d of dirs){const nx=c.x+d[0],nz=c.z+d[1];if(nx<0||nz<0||nx>=mazeSize||nz>=mazeSize||grid[c.z][c.x].w[d[2]])continue;if(!monsterEdgeClear(c.x,c.z,nx,nz))continue;const k=key(nx,nz);if(previous.has(k))continue;previous.set(k,key(c.x,c.z));queue.push({x:nx,z:nz});if(k===goal){found=true;break;}}}
   if(!found)return null;let k=goal;while(previous.get(k)!==start&&previous.get(k)!==null)k=previous.get(k);return {x:k%mazeSize,z:Math.floor(k/mazeSize)};
 }
 function startJumpscare(){
@@ -516,8 +527,27 @@ function startJumpscare(){
   rig.position.set(scareRoomX,0,2.35);rig.updateMatrixWorld(true);headOffset.position.set(0,0,0);yaw=0;pitch=0;velocity.set(0,0,0);spectatingMonster=false;updateSpectateButton();camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(-.12,0,0);scareRoom.visible=true;scareMonsterRoot.visible=true;scareMonsterRoot.position.set(scareRoomX,0,-.25);scareMonsterRoot.rotation.set(0,0,0);scareMonsterRoot.updateMatrixWorld(true);
   if(scareWalkAction)scareWalkAction.setEffectiveTimeScale(1.25);setLoopSound('chase',false);setLoopSound('monsterAmbience',false);playGameSound('jumpscare');playGameSound('monsterGrowl');
 }
+function respawnAtRandomMazeSpot(){
+  lobbyMode=false;
+  const safe=[];
+  for(let z=0;z<mazeSize;z++)for(let x=0;x<mazeSize;x++){
+    const wx=cellWorldX(x),wz=cellWorldZ(z);
+    if(!collides(wx,wz)&&!monsterCollides(wx,wz))safe.push({x,z,wx,wz,d:Math.hypot(wx-monster.position.x,wz-monster.position.z)});
+  }
+  if(!safe.length){rig.position.set(-half+cell*.7,0,half-cell*.7);}
+  else{
+    const far=safe.filter(p=>p.d>Math.min(10,cell*2));
+    const pool=far.length?far:safe;
+    const spot=pool[Math.floor(Math.random()*pool.length)];
+    rig.position.set(spot.wx,0,spot.wz);
+  }
+  headOffset.position.set(0,0,0);yaw=Math.random()*Math.PI*2;pitch=0;velocity.set(0,0,0);keys={};joyX=joyY=0;
+  document.getElementById('areaLabel').textContent='THE BACKROOMS';
+  document.getElementById('hint').textContent='You died. You respawned somewhere else in the Backrooms.';
+  camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);playerProtectedUntil=performance.now()+2600;
+}
 function finishJumpscare(){
-  scareActive=false;scareMonsterRoot.visible=false;if(savedScarePosition)rig.position.copy(savedScarePosition);yaw=savedScareYaw;pitch=savedScarePitch;velocity.set(0,0,0);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);playerProtectedUntil=performance.now()+1800;
+  scareActive=false;scareMonsterRoot.visible=false;respawnAtRandomMazeSpot();savedScarePosition=null;
 }
 function updateMonster(dt,xrFrame){
   if(scareActive)return;
@@ -526,15 +556,29 @@ function updateMonster(dt,xrFrame){
   const nowMs=performance.now();setLoopSound('monsterAmbience',playerDistance<18,THREE.MathUtils.clamp(.42-playerDistance/65,.08,.42));setLoopSound('chase',playerDistance<7,THREE.MathUtils.clamp(.72-playerDistance/18,.15,.72));
   if(nowMs>playerProtectedUntil&&playerDistance<2.05&&nowMs-lastNearScareAt>12000){lastNearScareAt=nowMs;startJumpscare();return;}
   const chasing=playerDistance<8;if(chasing){const next=findChaseCell();if(next)monsterTargetCell=next;}
-  const playerCellX=Math.max(0,Math.min(mazeSize-1,Math.round(rig.position.x/cell+mazeSize/2-.5))),playerCellZ=Math.max(0,Math.min(mazeSize-1,Math.round(rig.position.z/cell+mazeSize/2-.5)));
+  const playerCell=cellAtWorld(rig.position.x,rig.position.z),playerCellX=playerCell.x,playerCellZ=playerCell.z;
   const closeEnough=chasing&&playerDistance<1.15;let tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z);
   if(chasing&&monsterCell.x===playerCellX&&monsterCell.z===playerCellZ){tx=rig.position.x;tz=rig.position.z;}
   const dx=tx-monster.position.x,dz=tz-monster.position.z,dist=Math.hypot(dx,dz);
   let walking=!closeEnough&&dist>=.045;if(monsterWalkAction){monsterWalkAction.setEffectiveTimeScale(chasing?1:.21);monsterWalkAction.paused=!walking;}
   if(!walking){if(dist<.045){monster.position.x=tx;monster.position.z=tz;monsterCell.x=monsterTargetCell.x;monsterCell.z=monsterTargetCell.z;if(!chasing)chooseMonsterTarget();}}
   else{const speed=chasing?2.65:.72,step=Math.min(dist,speed*dt),sx=dx/dist*step,sz=dz/dist*step,pieces=Math.max(1,Math.ceil(step/.06));let blocked=false;
+    const moveStartX=monster.position.x,moveStartZ=monster.position.z;
     for(let i=1;i<=pieces;i++){const nx=monster.position.x+sx/pieces,nz=monster.position.z+sz/pieces;if(monsterCollides(nx,nz)){blocked=true;break;}monster.position.x=nx;monster.position.z=nz;}
-    if(blocked){monsterTargetCell={x:monsterCell.x,z:monsterCell.z};if(!chasing)chooseMonsterTarget();walking=false;if(monsterWalkAction)monsterWalkAction.paused=true;}
+    if(blocked){
+      monster.position.x=moveStartX;monster.position.z=moveStartZ;
+      const current=cellAtWorld(monster.position.x,monster.position.z);
+      let best=null,bestDist=Infinity;
+      for(let cz=0;cz<mazeSize;cz++)for(let cx=0;cx<mazeSize;cx++){
+        const wx=cellWorldX(cx),wz=cellWorldZ(cz),d=Math.hypot(wx-monster.position.x,wz-monster.position.z);
+        if(d<bestDist&&!monsterCollides(wx,wz)){best={x:cx,z:cz,wx,wz};bestDist=d;}
+      }
+      if(best&&bestDist<cell*.8){monster.position.set(best.wx,0,best.wz);monsterCell.x=best.x;monsterCell.z=best.z;}
+      else{monsterCell.x=current.x;monsterCell.z=current.z;}
+      if(chasing){const route=findChaseCell();monsterTargetCell=route||{x:monsterCell.x,z:monsterCell.z};}
+      else chooseMonsterTarget();
+      walking=false;if(monsterWalkAction)monsterWalkAction.paused=true;
+    }
     if(walking)monster.rotation.y=Math.atan2(-dx,-dz);
     if(!blocked&&dist<=step+.045){monster.position.x=tx;monster.position.z=tz;monsterCell.x=monsterTargetCell.x;monsterCell.z=monsterTargetCell.z;if(!chasing)chooseMonsterTarget();}
   }
@@ -600,7 +644,7 @@ document.getElementById('teleportMonster').addEventListener('click',()=>{
  let px=rig.position.x+forward.x*1.5,pz=rig.position.z+forward.z*1.5;
  if(monsterCollides(px,pz)){px=rig.position.x-forward.x*1.5;pz=rig.position.z-forward.z*1.5;}
  if(monsterCollides(px,pz)){px=rig.position.x;pz=rig.position.z;}
- monster.position.set(px,0,pz);monster.visible=true;monsterFrozenUntil=performance.now()+3000;playerProtectedUntil=performance.now()+3000;
+ monster.position.set(px,0,pz);const mcell=cellAtWorld(px,pz);monsterCell.x=mcell.x;monsterCell.z=mcell.z;monsterTargetCell={x:mcell.x,z:mcell.z};monsterPreviousCell=null;chooseMonsterTarget();monster.visible=true;monsterFrozenUntil=performance.now()+1200;playerProtectedUntil=performance.now()+1800;
  document.getElementById('hint').textContent='Monster teleported nearby · frozen for 3 seconds · spawn protection active!';
 });
 function updateMonsterSpectatorCamera(){
