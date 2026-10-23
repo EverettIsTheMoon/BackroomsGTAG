@@ -364,10 +364,10 @@ const gameSounds={
  monsterGrowl:{file:'monster-growl.mp3',loop:false,volume:.55}
 };
 const soundPlayers={};
-for(const [name,def] of Object.entries(gameSounds)){const audio=new Audio('sounds/'+def.file);audio.preload='none';audio.loop=def.loop;audio.volume=def.volume;soundPlayers[name]=audio;}
-function playGameSound(name){const audio=soundPlayers[name];if(!audio)return;try{if(!audio.paused&&!audio.loop)audio.currentTime=0;audio.play().catch(()=>{});}catch(e){}}
+for(const [name,def] of Object.entries(gameSounds)){const audio=new Audio('sounds/'+def.file);audio.preload='none';audio.loop=def.loop;audio.volume=def.volume;audio.addEventListener('error',()=>{audio.dataset.unavailable='1';});soundPlayers[name]=audio;}
+function playGameSound(name){const audio=soundPlayers[name];if(!audio||audio.dataset.unavailable==='1')return;try{if(!audio.paused&&!audio.loop)audio.currentTime=0;audio.play().catch(()=>{});}catch(e){}}
 function stopGameSound(name){const audio=soundPlayers[name];if(audio){audio.pause();try{audio.currentTime=0;}catch(e){}}}
-function setLoopSound(name,enabled,volume){const audio=soundPlayers[name];if(!audio)return;if(volume!==undefined)audio.volume=volume;if(enabled){if(audio.paused)audio.play().catch(()=>{});}else if(!audio.paused)stopGameSound(name);}
+function setLoopSound(name,enabled,volume){const audio=soundPlayers[name];if(!audio||audio.dataset.unavailable==='1')return;if(volume!==undefined)audio.volume=volume;if(enabled){if(audio.paused)audio.play().catch(()=>{});}else if(!audio.paused)stopGameSound(name);}
 let ambientAudioStarted=false,previousFootstepAt=0,lastPlayerX=0,lastPlayerZ=0,lastFootstepMoveAt=0;
 let lastNearScareAt=0,lastJumpAt=0,lastLandingAt=0,lastWallHitAt=0;
 function startMonsterAudio(){
