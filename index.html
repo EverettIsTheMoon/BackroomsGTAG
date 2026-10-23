@@ -855,11 +855,11 @@ function animate(timestamp,xrFrame){
    updateMonster(dt,xrFrame);
  }
  if(scareActive){
-   if(arMode&&mrChargeStart){const t=THREE.MathUtils.clamp((now-mrChargeStart)/500,0,1),head=new THREE.Vector3(),forward=new THREE.Vector3();camera.getWorldPosition(head);camera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq())forward.normalize();scareMonsterRoot.position.copy(head).addScaledVector(forward,3-2.45*t);scareMonsterRoot.position.y=Math.max(0,head.y-1.15);scareMonsterRoot.rotation.y=Math.atan2(-forward.x,-forward.z);if(t>=1&&tapedDoor.chargeAt===0){tapedDoor.chargeAt=now;playGameSound('jumpscare');playGameSound('monsterGrowl');}if(now>=scareEndsAt)finishJumpscare();else if(scareMixer)scareMixer.update(dt);
-   }else if(tapedDoor.chargeAt&&now-tapedDoor.chargeAt<500){
-     const t=THREE.MathUtils.clamp((now-tapedDoor.chargeAt)/500,0,1);
+   if(arMode&&mrChargeStart){const t=THREE.MathUtils.clamp((now-mrChargeStart)/450,0,1),head=new THREE.Vector3(),forward=new THREE.Vector3();camera.getWorldPosition(head);camera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq())forward.normalize();scareMonsterRoot.position.copy(head).addScaledVector(forward,3-2.45*t);scareMonsterRoot.position.y=Math.max(0,head.y-1.15);scareMonsterRoot.rotation.y=Math.atan2(-forward.x,-forward.z);if(t>=1&&tapedDoor.chargeAt===0){tapedDoor.chargeAt=now;playGameSound('jumpscare');playGameSound('monsterGrowl');}if(now>=scareEndsAt)finishJumpscare();else if(scareMixer)scareMixer.update(dt);
+   }else if(tapedDoor.chargeAt&&now-tapedDoor.chargeAt<450){
+     const t=THREE.MathUtils.clamp((now-tapedDoor.chargeAt)/450,0,1);
      scareMonsterRoot.position.z=-3.0+3.85*t;
-   }else if(tapedDoor.chargeAt&&now-tapedDoor.chargeAt>=500){
+   }else if(tapedDoor.chargeAt&&now-tapedDoor.chargeAt>=450){
      tapedDoor.chargeAt=0;playGameSound('jumpscare');playGameSound('monsterGrowl');
    }
    if(now>=scareEndsAt)finishJumpscare();
