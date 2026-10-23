@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.6 · ROOM VARIATION</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.7 · CHASE & JUMPSCARE FIXES</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile: use the joystick to move and drag to look. In VR, push off walls and the floor.</p></section>
  <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span id="areaLabel">LOBBY</span></div>
 </div>
@@ -567,6 +567,8 @@ for(let i=0;i<2;i++){
  c.addEventListener('disconnected',()=>{controllerConnected[i]=false;handAnchors[i]=null;wasTouching[i]=false;hand.visible=false;});
 }
 const velocity=new THREE.Vector3();const clock=new THREE.Clock();let started=false, desktop=false, mobileTest=false, yaw=0, pitch=0, keys={};
+// Declare mobile input state before reset() uses it during startup.
+let joyPointer=null,joyX=0,joyY=0,lookPointer=null;
 const playerRadius=.22, ceilingHeadClearance=.28;
 let spectatingMonster=false;
 let monsterFrozenUntil=0, playerProtectedUntil=0;
