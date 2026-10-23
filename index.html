@@ -512,7 +512,7 @@ function findChaseCell(){
   if(!found)return null;let k=goal;while(previous.get(k)!==start&&previous.get(k)!==null)k=previous.get(k);return {x:k%mazeSize,z:Math.floor(k/mazeSize)};
 }
 function startJumpscare(){
-  if(scareActive)return;scareActive=true;scareEndsAt=performance.now()+3600;savedScarePosition=rig.position.clone();savedScareYaw=yaw;savedScarePitch=pitch;
+  if(scareActive)return;keys={};joyX=joyY=0;scareActive=true;scareEndsAt=performance.now()+3600;savedScarePosition=rig.position.clone();savedScareYaw=yaw;savedScarePitch=pitch;
   rig.position.set(scareRoomX,0,2.35);yaw=0;pitch=0;velocity.set(0,0,0);scareMonsterRoot.visible=true;scareMonsterRoot.position.set(scareRoomX,0,-.25);scareMonsterRoot.rotation.set(0,0,0);
   if(scareWalkAction)scareWalkAction.setEffectiveTimeScale(1.25);setLoopSound('chase',false);setLoopSound('monsterAmbience',false);playGameSound('jumpscare');playGameSound('monsterGrowl');
 }
@@ -574,7 +574,7 @@ let scareActive=false,scareEndsAt=0,savedScarePosition=null,savedScareYaw=0,save
 const TARGET_VR_EYE_HEIGHT=1.52;
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 function collides(x,z){if(lobbyMode){return x<lobbyCenterX-5.05||x>lobbyCenterX+5.05||z< -5.05||z>5.05;}if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);yaw=Math.PI/2;pitch=0;document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
+function reset(){scareActive=false;scareMonsterRoot.visible=false;keys={};joyX=joyY=0;spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);yaw=Math.PI/2;pitch=0;document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
 reset();
 function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;testHand.visible=false;document.getElementById('mobileControls').classList.toggle('hidden',!mobileTest);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Joystick to move · drag anywhere else to look.':'WASD to move · Drag to look · Find the portal.';camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);renderer.setAnimationLoop(animate);}
 function updateSpectateButton(){
@@ -629,7 +629,7 @@ session.addEventListener('end',()=>{
 });
 started=true;desktop=false;mobileTest=false;testHand.visible=false;monster.visible=true;headOffset.position.set(0,0,0);camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Push against walls or the floor to move. Listen for the roaming entity.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});}});
 document.getElementById('reset').addEventListener('click',reset);
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='Escape')document.getElementById('panel').classList.remove('hidden');});
+addEventListener('keydown',e=>{if(!scareActive)keys[e.key.toLowerCase()]=true;if(e.key==='Escape'&&!scareActive)document.getElementById('panel').classList.remove('hidden');});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 let dragging=false,lastX=0,lastY=0;
 // Clear held movement keys when focus changes so WASD cannot get stuck after switching tabs.
@@ -645,8 +645,8 @@ document.addEventListener('visibilitychange',()=>{
 let joyPointer=null,joyX=0,joyY=0,lookPointer=null;
 const joyBase=document.getElementById('joyBase'),joyKnob=document.getElementById('joyKnob');
 function updateJoy(e){const r=joyBase.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=39,len=Math.hypot(dx,dy),scale=len>max?max/len:1;joyX=dx*scale/max;joyY=dy*scale/max;joyKnob.style.transform='translate('+dx*scale+'px,'+dy*scale+'px)';}
-joyBase.addEventListener('pointerdown',e=>{if(!mobileTest)return;joyPointer=e.pointerId;joyBase.setPointerCapture(e.pointerId);updateJoy(e);e.preventDefault();});
-joyBase.addEventListener('pointermove',e=>{if(e.pointerId===joyPointer)updateJoy(e);});
+joyBase.addEventListener('pointerdown',e=>{if(!mobileTest||scareActive)return;joyPointer=e.pointerId;joyBase.setPointerCapture(e.pointerId);updateJoy(e);e.preventDefault();});
+joyBase.addEventListener('pointermove',e=>{if(!scareActive&&e.pointerId===joyPointer)updateJoy(e);});
 function releaseJoy(e){if(e.pointerId===joyPointer){joyPointer=null;joyX=joyY=0;joyKnob.style.transform='translate(0,0)';}}
 joyBase.addEventListener('pointerup',releaseJoy);joyBase.addEventListener('pointercancel',releaseJoy);
 renderer.domElement.addEventListener('pointerdown',e=>{if(scareActive)return;if(mobileTest){lookPointer=e.pointerId;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);return;}if(!desktop)return;dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
