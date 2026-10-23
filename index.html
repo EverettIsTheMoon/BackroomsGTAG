@@ -53,7 +53,7 @@ document.body.appendChild(renderer.domElement);
 
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
 const wallBoxes=[], roomPillarBoxes=[];
-const mazeSize=13, cell=4, wallH=2.65, half=mazeSize*cell/2;
+const mazeSize=11, cell=4, wallH=2.65, half=mazeSize*cell/2;
 
 // Load the supplied wall and floor images from the local assets folder.
 // Local assets avoid regenerating these two large surfaces with canvas code.
@@ -118,8 +118,8 @@ for(let z=1;z<mazeSize-1;z+=3) for(let x=1;x<mazeSize-1;x+=4){if(Math.random()<.
 // Break up the corridor-only look with occasional wider 8 m x 8 m rooms.
 // Opening all four internal cell edges keeps the grid connected and lets the entity route through them.
 const wideRooms=[];
-for(const roomZ of [2,6,10])for(const roomX of [2,6,10]){
-  if(!(roomX===6&&roomZ===6)&&Math.random()>.58)continue;
+for(const roomZ of [2,5,8])for(const roomX of [2,5,8]){
+  if(!(roomX===5&&roomZ===5)&&Math.random()>.58)continue;
   wideRooms.push({x:roomX,z:roomZ});
   for(const x of [roomX,roomX+1]){
     grid[roomZ][x].w[1]=false;
@@ -288,7 +288,7 @@ if(outletPlacements.length){scene.add(outletPlates);scene.add(outletSlots);}
 // Curves are visual only and deliberately have no gameplay collision.
 const cableMat=new THREE.MeshStandardMaterial({color:0x25231f,roughness:.96});
 for(const room of wideRooms){
-  if(!(room.x===6&&room.z===6)&&Math.random()>.32)continue;
+  if(!(room.x===5&&room.z===5)&&Math.random()>.32)continue;
   const cx=(room.x-mazeSize/2+1)*cell,cz=(room.z-mazeSize/2+1)*cell;
   const points=[
     new THREE.Vector3(cx-3.0,.024,cz+1.05),
@@ -469,16 +469,18 @@ function updateMonster(dt,xrFrame){
   setLoopSound('monsterAmbience',playerDistance<18,THREE.MathUtils.clamp(.42-playerDistance/65,.08,.42));
   setLoopSound('chase',playerDistance<7,THREE.MathUtils.clamp(.72-playerDistance/18,.15,.72));
   if(playerDistance<1.65&&nowMs-lastNearScareAt>16000){playGameSound('jumpscare');playGameSound('monsterGrowl');lastNearScareAt=nowMs;}
+  const chasing=playerDistance<7;
   const tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z);
   const dx=tx-monster.position.x,dz=tz-monster.position.z,dist=Math.hypot(dx,dz);
   let walking=dist>=.045;
+  if(monsterWalkAction)monsterWalkAction.setEffectiveTimeScale(chasing?1:.42);
   if(!walking){
     // Snap only the tiny remaining distance so position never accumulates route drift.
     monster.position.x=tx;monster.position.z=tz;
     monsterCell.x=monsterTargetCell.x;monsterCell.z=monsterTargetCell.z;
     chooseMonsterTarget();
   }else{
-    const speed=1.05,step=Math.min(dist,speed*dt);
+    const speed=chasing?2.15:.72,step=Math.min(dist,speed*dt);
     const sx=dx/dist*step,sz=dz/dist*step;
     // Sweep in short steps and test collision before moving, so the creature cannot cut through walls.
     const pieces=Math.max(1,Math.ceil(step/.06));
