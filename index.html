@@ -29,6 +29,7 @@ window.addEventListener('unhandledrejection',event=>{
 </script>
 <script type="module">
 import * as THREE from 'three';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb9ad73);
@@ -313,37 +314,47 @@ const signTexture=makeCanvasTexture(256,(ctx,size)=>{
 },701);
 const signText=new THREE.Mesh(new THREE.PlaneGeometry(.72,.22),new THREE.MeshBasicMaterial({map:signTexture}));signText.position.set(0,2.22,signZ+.041);scene.add(signText);
 
-// A low-poly roaming entity: long limbs, a narrow head and small emissive eyes.
-// Its route follows the maze's actual open cell connections, so it stays in corridors.
+// Load the supplied monster model and apply its companion texture in-game.
 const monster=new THREE.Group();
 const monsterVisual=new THREE.Group();monster.add(monsterVisual);
-const monsterSkin=new THREE.MeshStandardMaterial({color:0x171713,roughness:1});
-const monsterCloth=new THREE.MeshStandardMaterial({color:0x292820,roughness:1});
-const monsterMouthMat=new THREE.MeshBasicMaterial({color:0x020202});
-const monsterEyeMat=new THREE.MeshBasicMaterial({color:0xb21d12});
-const monsterBody=new THREE.Mesh(new THREE.CapsuleGeometry(.29,.72,3,6),monsterCloth);
-monsterBody.position.y=1.12;monsterVisual.add(monsterBody);
-const monsterHead=new THREE.Mesh(new THREE.SphereGeometry(.24,9,7),monsterSkin);
-monsterHead.scale.set(.82,1.42,.78);monsterHead.position.set(0,1.91,-.035);monsterVisual.add(monsterHead);
-const monsterJaw=new THREE.Mesh(new THREE.BoxGeometry(.22,.12,.08),monsterMouthMat);
-monsterJaw.position.set(0,1.73,-.205);monsterVisual.add(monsterJaw);
 const monsterLimbs=[];
-const monsterFootMat=mat(0x11110f,.98);
-for(const side of [-1,1]){
-  const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,6,5),monsterEyeMat);
-  eye.position.set(side*.105,1.99,-.205);monsterVisual.add(eye);
-  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.075,.88,3,5),monsterSkin);
-  arm.position.set(side*.37,.98,-.005);arm.rotation.z=side*.13;monsterVisual.add(arm);
-  const hand=new THREE.Mesh(new THREE.SphereGeometry(.085,6,5),monsterSkin);
-  hand.scale.set(.8,1.35,.7);hand.position.set(side*.02,-.49,-.015);arm.add(hand);
-  monsterLimbs.push({mesh:arm,side,kind:'arm',restZ:side*.13});
-  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.58,3,5),monsterSkin);
-  leg.position.set(side*.15,.40,.015);monsterVisual.add(leg);
-  const foot=new THREE.Mesh(new THREE.BoxGeometry(.14,.08,.22),monsterFootMat);
-  foot.position.set(side*.012,-.36,-.065);leg.add(foot);
-  monsterLimbs.push({mesh:leg,side,kind:'leg',restZ:0});
-}
 scene.add(monster);monster.visible=false;
+const monsterTexture=textureLoader.load('assets/monster-texture.jpg');
+monsterTexture.colorSpace=THREE.SRGBColorSpace;
+monsterTexture.flipY=false;
+monsterTexture.anisotropy=Math.min(2,renderer.capabilities.getMaxAnisotropy());
+const monsterLoader=new GLTFLoader();
+monsterLoader.load('assets/monster.glb',gltf=>{
+  const model=gltf.scene;
+  model.traverse(node=>{
+    if(!node.isMesh)return;
+    node.castShadow=false;node.receiveShadow=false;
+    const applyTexture=material=>{
+      const m=(material||new THREE.MeshStandardMaterial()).clone();
+      m.map=monsterTexture;
+      m.color.set(0xffffff);
+      m.roughness=Math.max(m.roughness||0,0.82);
+      m.needsUpdate=true;
+      return m;
+    };
+    node.material=Array.isArray(node.material)?node.material.map(applyTexture):applyTexture(node.material);
+  });
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model);
+  const size=bounds.getSize(new THREE.Vector3());
+  const scale=2.05/(size.y>0.01?size.y:Math.max(size.x,size.z,1));
+  model.scale.setScalar(scale);
+  model.updateMatrixWorld(true);
+  const fittedBounds=new THREE.Box3().setFromObject(model);
+  const center=fittedBounds.getCenter(new THREE.Vector3());
+  model.position.x-=center.x;
+  model.position.z-=center.z;
+  model.position.y-=fittedBounds.min.y;
+  monsterVisual.add(model);
+},undefined,error=>{
+  console.error('Monster model failed to load:',error);
+  document.getElementById('hint').textContent='Monster model failed to load. Check assets/monster.glb.';
+});
 const monsterCell={x:mazeSize-1,z:mazeSize-1};
 let monsterTargetCell={x:mazeSize-1,z:mazeSize-1}, monsterPreviousCell=null;
 function cellWorldX(x){return (x-mazeSize/2+.5)*cell;}
