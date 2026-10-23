@@ -316,7 +316,7 @@ lobbyWall(lobbyCenterX,1.35,5.5,11,2.7,.18);
 lobbyWall(lobbyCenterX+5.5,1.35,0,.18,2.7,11);
 const portalFrameMat=new THREE.MeshStandardMaterial({color:0xdecf78,emissive:0x8c741d,emissiveIntensity:1.8,roughness:.35});
 const portalCoreMat=new THREE.MeshBasicMaterial({color:0x8a9b62,transparent:true,opacity:.62,side:THREE.DoubleSide});
-const portal=new THREE.Group();portal.position.set(lobbyCenterX-4.45,1.35,0);scene.add(portal);
+const portal=new THREE.Group();portal.position.set(lobbyCenterX-4.45,1.35,0);portal.rotation.y=Math.PI/2;scene.add(portal);
 const portalRing=new THREE.Mesh(new THREE.TorusGeometry(1.05,.12,8,32),portalFrameMat);portal.add(portalRing);
 const portalCore=new THREE.Mesh(new THREE.CircleGeometry(.96,32),portalCoreMat);portal.add(portalCore);
 const portalLabelCanvas=document.createElement('canvas');portalLabelCanvas.width=512;portalLabelCanvas.height=96;
@@ -586,7 +586,7 @@ let monsterFrozenUntil=0, playerProtectedUntil=0;
 const TARGET_VR_EYE_HEIGHT=1.52;
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
 function collides(x,z){if(lobbyMode){return x<lobbyCenterX-5.05||x>lobbyCenterX+5.05||z< -5.05||z>5.05;}if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
+function reset(){spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);yaw=Math.PI/2;pitch=0;document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
 reset();
 function startDesktop(){started=true;startMonsterAudio();monster.visible=true;const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);mobileTest=isMobile;desktop=!isMobile;testHand.visible=false;document.getElementById('mobileControls').classList.toggle('hidden',!mobileTest);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Joystick to move · drag anywhere else to look.':'WASD to move · Drag to look · Find the portal.';camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);renderer.setAnimationLoop(animate);}
 function updateSpectateButton(){
