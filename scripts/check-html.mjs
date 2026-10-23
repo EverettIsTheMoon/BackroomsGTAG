@@ -68,7 +68,14 @@ for (const marker of [
   'for(const limb of monsterLimbs)',
   'if(!(roomX===6&&roomZ===6)&&Math.random()>.58)continue;',
   'for(const [frequency,level] of [[119.8,.55],[239.6,.22],[359.4,.08]])',
-  'new THREE.PointLight(0xffe8ad,.55,13,2)',
+  'new THREE.PointLight(0xffe8ad,.62,14,2)',
+  'renderer.setPixelRatio(Math.min(devicePixelRatio,1.0))',
+  'renderer.xr.setFramebufferScaleFactor(0.78)',
+  "file:'ambience.mp3'",
+  "file:'jumpscare.mp3'",
+  "file:'footsteps.mp3'",
+  "file:'landing.mp3'",
+  "file:'wall-hit.mp3'",
   'function playMonsterNoise()',
   "window.addEventListener('unhandledrejection'"
 ]) {
