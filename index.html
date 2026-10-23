@@ -489,11 +489,9 @@ function updateMonster(dt,xrFrame){
       monster.position.x=nx;monster.position.z=nz;
     }
     if(blocked){
-      // Recover at the current valid cell instead of snapping through the obstruction.
-      monster.position.x=cellWorldX(monsterCell.x);
-      monster.position.z=cellWorldZ(monsterCell.z);
-      chooseMonsterTarget();
-      walking=false;
+      // Reverse toward the last cell smoothly; never teleport the model out of an obstruction.
+      monsterTargetCell={x:monsterCell.x,z:monsterCell.z};
+      walking=true;
     }
     if(walking)monster.rotation.y=Math.atan2(-dx,-dz);
   }
