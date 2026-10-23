@@ -507,16 +507,17 @@ function enterBackrooms(){
 function cellAtWorld(x,z){
   return {x:Math.max(0,Math.min(mazeSize-1,Math.round(x/cell+mazeSize/2-.5))),z:Math.max(0,Math.min(mazeSize-1,Math.round(z/cell+mazeSize/2-.5)))};
 }
+const monsterEdgeCache=new Map();
 function monsterEdgeClear(x,z,nx,nz){
+  const ia=z*mazeSize+x,ib=nz*mazeSize+nx,key=ia<ib?ia+':'+ib:ib+':'+ia;
+  if(monsterEdgeCache.has(key))return monsterEdgeCache.get(key);
   const ax=cellWorldX(x),az=cellWorldZ(z),bx=cellWorldX(nx),bz=cellWorldZ(nz);
-  const steps=Math.max(2,Math.ceil(Math.hypot(bx-ax,bz-az)/.18));
-  for(let i=1;i<steps;i++){const t=i/steps;if(monsterCollides(ax+(bx-ax)*t,az+(bz-az)*t))return false;}
-  return true;
+  const steps=Math.max(2,Math.ceil(Math.hypot(bx-ax,bz-az)/.18));let clear=true;
+  for(let i=1;i<steps;i++){const t=i/steps;if(monsterCollides(ax+(bx-ax)*t,az+(bz-az)*t)){clear=false;break;}}
+  monsterEdgeCache.set(key,clear);return clear;
 }
 function findChaseCell(){
   const playerCell=cellAtWorld(rig.position.x,rig.position.z),px=playerCell.x,pz=playerCell.z;
-  const actualCell=cellAtWorld(monster.position.x,monster.position.z);
-  if(!monsterCollides(cellWorldX(actualCell.x),cellWorldZ(actualCell.z))){monsterCell.x=actualCell.x;monsterCell.z=actualCell.z;}
   const key=(x,z)=>z*mazeSize+x,start=key(monsterCell.x,monsterCell.z),goal=key(px,pz);if(start===goal)return {x:px,z:pz};
   const queue=[{x:monsterCell.x,z:monsterCell.z}],previous=new Map([[start,null]]);let found=false;
   for(let qi=0;qi<queue.length&&!found;qi++){const c=queue[qi];for(const d of dirs){const nx=c.x+d[0],nz=c.z+d[1];if(nx<0||nz<0||nx>=mazeSize||nz>=mazeSize||grid[c.z][c.x].w[d[2]])continue;if(!monsterEdgeClear(c.x,c.z,nx,nz))continue;const k=key(nx,nz);if(previous.has(k))continue;previous.set(k,key(c.x,c.z));queue.push({x:nx,z:nz});if(k===goal){found=true;break;}}}
