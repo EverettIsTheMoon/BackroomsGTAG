@@ -163,7 +163,8 @@ function hideTapedWall(){if(tapedDoorWallIndex<0)return;if(!mrSavedDoorMatrix){m
 function restoreTapedWall(){if(tapedDoorWallIndex>=0&&mrSavedDoorMatrix){wallMesh.setMatrixAt(tapedDoorWallIndex,mrSavedDoorMatrix);wallMesh.instanceMatrix.needsUpdate=true;wallMesh.computeBoundingSphere();}tapeGroup.visible=true;}
 function enterARScene(){if(arMode)return;arMode=true;mrSavedBackground=scene.background;mrSavedFog=scene.fog;mrSceneVisibility=new Map();for(const child of scene.children){mrSceneVisibility.set(child,child.visible);if(child!==rig&&child!==scareMonsterRoot)child.visible=false;}scene.background=null;scene.fog=null;}
 function leaveARScene(){if(!arMode)return;if(mrSceneVisibility){for(const [child,visible] of mrSceneVisibility)child.visible=visible;}scene.background=mrSavedBackground;scene.fog=mrSavedFog;arMode=false;mrSceneVisibility=null;}
-function showDoorWarning(){document.getElementById('mrFade').style.opacity='0';document.getElementById('doorWarning').style.display='flex';tapedDoor.warning=true;tapedDoor.warningAt=performance.now();if(arMode){const d=new THREE.Vector3();camera.getWorldDirection(d);d.y=0;if(d.lengthSq())d.normalize();mrTurnForward=d;}}
+function getActiveScareCamera(){if(renderer.xr.isPresenting){const xrCamera=renderer.xr.getCamera(camera);return xrCamera.cameras&&xrCamera.cameras.length?xrCamera.cameras[0]:xrCamera;}return camera;}
+function showDoorWarning(){document.getElementById('mrFade').style.opacity='0';document.getElementById('doorWarning').style.display='flex';tapedDoor.warning=true;tapedDoor.warningAt=performance.now();if(arMode){const d=new THREE.Vector3();getActiveScareCamera().getWorldDirection(d);d.y=0;if(d.lengthSq())d.normalize();mrTurnForward=d;}}
 async function enableMixedRealityFromTap(){const prompt=document.getElementById('mrPrompt'),hint=document.getElementById('hint');try{if(!navigator.xr||!(await navigator.xr.isSessionSupported('immersive-ar')))throw new Error('This browser or headset does not support WebXR passthrough.');mrTransitioning=true;const oldSession=renderer.xr.getSession();if(oldSession)await oldSession.end();const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local-floor'],optionalFeatures:['dom-overlay'],domOverlay:{root:document.body}});await renderer.xr.setSession(session);enterARScene();prompt.style.display='none';mrTransitioning=false;showDoorWarning();session.addEventListener('end',()=>{leaveARScene();restoreTapedWall();mrTransitioning=false;started=false;desktop=false;mobileTest=false;reset();document.getElementById('panel').classList.remove('hidden');document.getElementById('hint').textContent='Mixed-reality session ended. Enter VR to keep exploring.';});}catch(e){mrTransitioning=false;prompt.style.display='none';hint.textContent='Mixed reality unavailable here; continuing the scare in normal mode.';showDoorWarning();}}
 const tapeMat=new THREE.MeshStandardMaterial({color:0x1678ed,roughness:.88});
 const tapeGroup=new THREE.Group();
@@ -830,7 +831,7 @@ function animate(timestamp,xrFrame){
    if(tapedDoor.warning){
      let turned=false;
      if(renderer.xr.isPresenting){
-       const dir=new THREE.Vector3();camera.getWorldDirection(dir);dir.y=0;if(dir.lengthSq())dir.normalize();
+       const dir=new THREE.Vector3();getActiveScareCamera().getWorldDirection(dir);dir.y=0;if(dir.lengthSq())dir.normalize();
        const forward=arMode&&mrTurnForward?mrTurnForward:new THREE.Vector3(-Math.sin(savedScareYaw),0,-Math.cos(savedScareYaw));
        turned=dir.dot(forward)<-.35;
      }else{
@@ -840,7 +841,7 @@ function animate(timestamp,xrFrame){
      if(turned){
        document.getElementById('doorWarning').style.display='none';
        tapedDoor.warning=false;
-       if(arMode){scareActive=true;scareEndsAt=performance.now()+3600;mrChargeStart=performance.now();const head=new THREE.Vector3();camera.getWorldPosition(head);const forward=new THREE.Vector3();camera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq())forward.normalize();scareMonsterRoot.position.copy(head).addScaledVector(forward,3);scareMonsterRoot.position.y=Math.max(0,head.y-1.15);scareMonsterRoot.rotation.y=Math.atan2(-forward.x,-forward.z);scareMonsterRoot.visible=true;playGameSound('chase');}else{startJumpscare();tapedDoor.chargeAt=performance.now();scareMonsterRoot.position.set(scareRoomX,0,-3.0);scareEndsAt=performance.now()+3600;}
+       if(arMode){scareActive=true;scareEndsAt=performance.now()+3600;mrChargeStart=performance.now();const activeCamera=getActiveScareCamera(),head=new THREE.Vector3();activeCamera.getWorldPosition(head);const forward=new THREE.Vector3();activeCamera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq())forward.normalize();scareMonsterRoot.position.copy(head).addScaledVector(forward,3);scareMonsterRoot.position.y=Math.max(0,head.y-1.15);scareMonsterRoot.rotation.y=Math.atan2(-forward.x,-forward.z);scareMonsterRoot.visible=true;playGameSound('chase');}else{startJumpscare();tapedDoor.chargeAt=performance.now();scareMonsterRoot.position.set(scareRoomX,0,-3.0);scareEndsAt=performance.now()+3600;}
      }
    }
    if(lobbyMode){
@@ -855,7 +856,7 @@ function animate(timestamp,xrFrame){
    updateMonster(dt,xrFrame);
  }
  if(scareActive){
-   if(arMode&&mrChargeStart){const t=THREE.MathUtils.clamp((now-mrChargeStart)/450,0,1),head=new THREE.Vector3(),forward=new THREE.Vector3();camera.getWorldPosition(head);camera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq())forward.normalize();scareMonsterRoot.position.copy(head).addScaledVector(forward,3-2.45*t);scareMonsterRoot.position.y=Math.max(0,head.y-1.15);scareMonsterRoot.rotation.y=Math.atan2(-forward.x,-forward.z);if(t>=1&&tapedDoor.chargeAt===0){tapedDoor.chargeAt=now;playGameSound('jumpscare');playGameSound('monsterGrowl');}if(now>=scareEndsAt)finishJumpscare();else if(scareMixer)scareMixer.update(dt);
+   if(arMode&&mrChargeStart){const t=THREE.MathUtils.clamp((now-mrChargeStart)/450,0,1),activeCamera=getActiveScareCamera(),head=new THREE.Vector3(),forward=new THREE.Vector3();activeCamera.getWorldPosition(head);activeCamera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq())forward.normalize();scareMonsterRoot.position.copy(head).addScaledVector(forward,3-2.45*t);scareMonsterRoot.position.y=Math.max(0,head.y-1.15);scareMonsterRoot.rotation.y=Math.atan2(-forward.x,-forward.z);if(t>=1&&tapedDoor.chargeAt===0){tapedDoor.chargeAt=now;playGameSound('jumpscare');playGameSound('monsterGrowl');}if(now>=scareEndsAt)finishJumpscare();else if(scareMixer)scareMixer.update(dt);
    }else if(tapedDoor.chargeAt&&now-tapedDoor.chargeAt<450){
      const t=THREE.MathUtils.clamp((now-tapedDoor.chargeAt)/450,0,1);
      scareMonsterRoot.position.z=-3.0+3.85*t;
