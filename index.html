@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 1.2 · REAL VR HEIGHT & CONTROLLER ALIGNMENT</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 1.3 · REBUILT VR HAND LOCOMOTION</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile: use the joystick to move and drag to look. In VR, push off walls and the floor.</p></section>
  <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span id="areaLabel">LOBBY</span></div>
 </div>
@@ -622,8 +622,9 @@ let scareActive=false,scareEndsAt=0,savedScarePosition=null,savedScareYaw=0,save
 // Use the headset's real tracked height. Artificially correcting the camera alone
 // separates the view from the tracked controller poses and prevents reaching the floor.
 let handY=.28, handVelocityY=0, activeTouchId=null, previousTouchY=0, previousTouchTime=0, mobilePushVelocity=0, mobilePushCooldown=0;
+const gravity=9.8, maxPlayerRise=wallH-1.82, handCorrection=new THREE.Vector3();
 function collides(x,z){if(lobbyMode){return x<lobbyCenterX-5.05||x>lobbyCenterX+5.05||z< -5.05||z>5.05;}if(Math.abs(x)>half-.25||Math.abs(z)>half-.25)return true;for(const b of wallBoxes){if(b.maxY<.25)continue;if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}for(const b of roomPillarBoxes){if(x+playerRadius>b.minX&&x-playerRadius<b.maxX&&z+playerRadius>b.minZ&&z-playerRadius<b.maxZ)return true;}return false;}
-function reset(){scareActive=false;scareMonsterRoot.visible=false;keys={};joyX=joyY=0;spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);yaw=Math.PI/2;pitch=0;document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;testHand.position.y=handY;}
+function reset(){scareActive=false;scareMonsterRoot.visible=false;keys={};joyX=joyY=0;spectatingMonster=false;updateSpectateButton();lobbyMode=true;rig.position.set(lobbyCenterX+1.8,0,0);yaw=Math.PI/2;pitch=0;document.getElementById("areaLabel").textContent="LOBBY";headOffset.position.set(0,0,0);velocity.set(0,0,0);yaw=!grid[mazeSize-1][0].w[3]?0:-Math.PI/2;pitch=0;camera.rotation.set(0,0,0);handAnchors.fill(null);wasTouching.fill(false);handY=.28;handVelocityY=0;mobilePushVelocity=0;mobilePushCooldown=0;velocity.set(0,0,0);testHand.position.y=handY;}
 reset();
 function startDesktop(){const isMobile=matchMedia('(pointer:coarse)').matches||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);if(isMobile){const root=document.documentElement;if(!document.fullscreenElement&&root.requestFullscreen){root.requestFullscreen().then(()=>{if(screen.orientation?.lock)screen.orientation.lock('landscape').catch(()=>{});}).catch(()=>{});}else if(!document.fullscreenElement&&root.webkitRequestFullscreen){try{root.webkitRequestFullscreen();}catch(e){}}}started=true;startMonsterAudio();monster.visible=true;mobileTest=isMobile;desktop=!isMobile;testHand.visible=false;document.getElementById('mobileControls').classList.toggle('hidden',!mobileTest);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent=mobileTest?'Joystick to move · drag anywhere else to look.':'WASD to move · Drag to look · Find the portal.';camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(0,0,0);renderer.setAnimationLoop(animate);}
 function updateSpectateButton(){
@@ -702,7 +703,15 @@ renderer.domElement.addEventListener('pointerdown',e=>{if(scareActive)return;if(
 renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===lookPointer)lookPointer=null;dragging=false;});
 renderer.domElement.addEventListener('pointercancel',e=>{if(e.pointerId===lookPointer)lookPointer=null;dragging=false;});
 renderer.domElement.addEventListener('pointermove',e=>{if(scareActive)return;if(mobileTest&&e.pointerId===lookPointer){yaw-=(e.clientX-lastX)*.006;pitch=Math.max(-1.25,Math.min(1.25,pitch-(e.clientY-lastY)*.006));lastX=e.clientX;lastY=e.clientY;return;}if(!desktop||!dragging)return;yaw-=(e.clientX-lastX)*.004;pitch=Math.max(-1.3,Math.min(1.3,pitch-(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY;});
-function handTouches(p){if(p.y<.20)return true;for(const b of wallBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}for(const b of roomPillarBoxes){if(p.y>.1&&p.y<wallH+.12&&p.x>b.minX-.13&&p.x<b.maxX+.13&&p.z>b.minZ-.13&&p.z<b.maxZ+.13)return true;}return false;}
+function handTouches(p){
+  const onMazeFloor=Math.abs(p.x)<=half+.1&&Math.abs(p.z)<=half+.1;
+  const onLobbyFloor=Math.abs(p.x-lobbyCenterX)<=5.55&&Math.abs(p.z)<=5.55;
+  const onScareFloor=Math.abs(p.x-scareRoomX)<=4.05&&Math.abs(p.z)<=4.05;
+  if(p.y<=.17&&p.y>=-.16&&(onMazeFloor||onLobbyFloor||onScareFloor))return true;
+  for(const b of wallBoxes){if(p.y>.08&&p.y<wallH+.12&&p.x>b.minX-.16&&p.x<b.maxX+.16&&p.z>b.minZ-.16&&p.z<b.maxZ+.16)return true;}
+  for(const b of roomPillarBoxes){if(p.y>.08&&p.y<wallH+.12&&p.x>b.minX-.16&&p.x<b.maxX+.16&&p.z>b.minZ-.16&&p.z<b.maxZ+.16)return true;}
+  return false;
+}
 function animate(timestamp,xrFrame){
  const dt=Math.min(clock.getDelta(),.025);
  const travelNow=performance.now();
@@ -714,7 +723,7 @@ function animate(timestamp,xrFrame){
  lastPlayerX=rig.position.x;lastPlayerZ=rig.position.z;
  // local-floor already puts Y=0 at the real floor. Keep the rig and camera offset at zero
  // so real head height and controller poses stay in the same tracked coordinate space.
- if(renderer.xr.isPresenting){rig.position.y=0;headOffset.position.y=0;}
+ if(renderer.xr.isPresenting){headOffset.position.y=0;}
  const now=performance.now();
  for(const state of fluorescentStates){
    if(!state.flickers)continue;
@@ -761,16 +770,45 @@ function animate(timestamp,xrFrame){
    rig.position.y=0;
  }else if(desktop&&started){testHand.visible=false;camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const wish=new THREE.Vector3();if(keys.w)wish.add(forward);if(keys.s)wish.sub(forward);if(keys.d)wish.add(right);if(keys.a)wish.sub(right);if(wish.lengthSq())wish.normalize().multiplyScalar(3.2*dt);const nx=rig.position.x+wish.x,nz=rig.position.z+wish.z;if(!collides(nx,rig.position.z))rig.position.x=nx;if(!collides(rig.position.x,nz))rig.position.z=nz;}
  else if(renderer.xr.isPresenting&&started){
-   const correction=new THREE.Vector3();let anyTouch=false;
-   for(let i=0;i<controllers.length;i++){
-     if(!controllerConnected[i]){handAnchors[i]=null;wasTouching[i]=false;continue;}
-     const c=controllers[i],p=new THREE.Vector3();c.getWorldPosition(p);const touching=handTouches(p);anyTouch=anyTouch||touching;if(touching&&!wasTouching[i])handAnchors[i]=p.clone();if(touching&&handAnchors[i]){const delta=handAnchors[i].clone().sub(p);delta.y=0;if(delta.lengthSq()<1.0)correction.add(delta);else handAnchors[i]=p.clone();}if(!touching)handAnchors[i]=null;wasTouching[i]=touching;
-   }
-   correction.clampLength(0,.12);let movedX=0,movedZ=0;
-   if(anyTouch){if(performance.now()-lastWallHitAt>700&&(Math.abs(correction.x)+Math.abs(correction.z)>.035)){playGameSound('wallHit');lastWallHitAt=performance.now();}if(!collides(rig.position.x+correction.x,rig.position.z)){rig.position.x+=correction.x;movedX=correction.x;}if(!collides(rig.position.x,rig.position.z+correction.z)){rig.position.z+=correction.z;movedZ=correction.z;}velocity.x=movedX/dt*.12;velocity.z=movedZ/dt*.12;}
-   else{velocity.x*=Math.pow(.24,dt);velocity.z*=Math.pow(.24,dt);const driftX=velocity.x*dt,driftZ=velocity.z*dt;if(!collides(rig.position.x+driftX,rig.position.z)){rig.position.x+=driftX;movedX=driftX;}else velocity.x=0;if(!collides(rig.position.x,rig.position.z+driftZ)){rig.position.z+=driftZ;movedZ=driftZ;}else velocity.z=0;}
- }
- if(!started){const t=performance.now()*.00008;camera.position.set(Math.sin(t)*.05,1.62,0);camera.lookAt(Math.sin(t+1)*.1,1.6,-3);}
+    // Gorilla Tag-style anchored hands: body moves opposite a planted hand, including vertically.
+    handCorrection.set(0,0,0);let contactCount=0;
+    for(let i=0;i<controllers.length;i++){
+      if(!controllerConnected[i]){handAnchors[i]=null;wasTouching[i]=false;continue;}
+      const p=new THREE.Vector3();controllers[i].getWorldPosition(p);
+      const touching=handTouches(p);
+      if(touching&&!wasTouching[i])handAnchors[i]=p.clone();
+      if(touching&&handAnchors[i]){
+        const delta=handAnchors[i].clone().sub(p);
+        if(delta.lengthSq()<1.44){handCorrection.add(delta);contactCount++;}
+        else handAnchors[i]=p.clone();
+      }else if(!touching)handAnchors[i]=null;
+      wasTouching[i]=touching;
+    }
+    if(contactCount){
+      handCorrection.multiplyScalar(1/contactCount).clampLength(0,.20);
+      const oldX=rig.position.x,oldY=rig.position.y,oldZ=rig.position.z;
+      const nx=oldX+handCorrection.x,nz=oldZ+handCorrection.z;
+      if(!collides(nx,oldZ))rig.position.x=nx;else velocity.x=0;
+      if(!collides(rig.position.x,nz))rig.position.z=nz;else velocity.z=0;
+      rig.position.y=THREE.MathUtils.clamp(oldY+handCorrection.y,0,maxPlayerRise);
+      const actual=new THREE.Vector3(rig.position.x-oldX,rig.position.y-oldY,rig.position.z-oldZ);
+      velocity.x=THREE.MathUtils.clamp(actual.x/Math.max(dt,.008),-5.5,5.5)*.72;
+      velocity.y=THREE.MathUtils.clamp(actual.y/Math.max(dt,.008),-5.5,5.5)*.82;
+      velocity.z=THREE.MathUtils.clamp(actual.z/Math.max(dt,.008),-5.5,5.5)*.72;
+      if(performance.now()-lastWallHitAt>700&&actual.length()>.025){playGameSound('wallHit');lastWallHitAt=performance.now();}
+    }else{
+      const drag=Math.pow(.16,dt);
+      velocity.x*=drag;velocity.z*=drag;velocity.y-=gravity*dt;
+      const dx=velocity.x*dt,dz=velocity.z*dt,dy=velocity.y*dt;
+      if(!collides(rig.position.x+dx,rig.position.z))rig.position.x+=dx;else velocity.x=0;
+      if(!collides(rig.position.x,rig.position.z+dz))rig.position.z+=dz;else velocity.z=0;
+      const nextY=rig.position.y+dy;
+      if(nextY<=0){rig.position.y=0;velocity.y=0;}
+      else if(nextY>=maxPlayerRise){rig.position.y=maxPlayerRise;velocity.y=Math.min(0,velocity.y);}
+      else rig.position.y=nextY;
+    }
+  }
+  if(!started){const t=performance.now()*.00008;camera.position.set(Math.sin(t)*.05,1.62,0);camera.lookAt(Math.sin(t+1)*.1,1.6,-3);}
  renderer.render(scene,camera);
 }
 renderer.setAnimationLoop(animate);
