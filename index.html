@@ -17,6 +17,10 @@
  <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: left joystick to move.</span><span id="areaLabel">LOBBY</span></div>
 </div>
 <div id="doorWarning" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:transparent;pointer-events:none;z-index:20;font-weight:1000;font-size:clamp(30px,7vw,72px);letter-spacing:.08em;color:#ff1010;text-shadow:0 0 10px #f00,0 3px 18px #000;text-align:center;padding:20px">LOOK BEHIND YOU</div>
+<div id="mrFade" aria-hidden="true" style="position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:100;transition:opacity .42s ease"></div>
+<div id="mrPrompt" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:110;background:#000d;color:white;font:800 18px system-ui;text-align:center;padding:24px">
+ <div style="max-width:420px">MIXED REALITY<br><p style="font-weight:500;line-height:1.5">Tap below to allow passthrough. Some browsers require a tap before switching into mixed reality.</p><button id="mrEnable" type="button">ENABLE MIXED REALITY</button><br><button id="mrSkip" type="button" style="background:#333;color:white">CONTINUE WITHOUT PASSTHROUGH</button></div>
+</div>
 <script>
 function showGameError(message){
   const hint=document.getElementById('hint');
@@ -41,7 +45,7 @@ const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 90)
 const rig = new THREE.Group();
 // Keep headset height correction in a camera-only parent so controller/floor contact stays grounded.
 const headOffset = new THREE.Group();rig.add(headOffset);headOffset.add(camera);scene.add(rig);
-const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
+const renderer = new THREE.WebGLRenderer({antialias:false, alpha:true, powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.0));
 renderer.setSize(innerWidth,innerHeight); renderer.xr.enabled=true;
 // Lower the XR framebuffer scale to reduce standalone-headset GPU load.
@@ -152,7 +156,15 @@ for(let z=0;z<mazeSize;z++)for(let x=0;x<mazeSize;x++){
 // Instancing keeps the maze from becoming hundreds of separate wall draw calls on Quest.
 // Secret no-clip door: the wallpaper stays visually continuous.
 const tapedDoorWall=wallInstances.find(w=>w.orientation==='x')||wallInstances[0];
+const tapedDoorWallIndex=wallInstances.indexOf(tapedDoorWall);
 const tapedDoor={x:tapedDoorWall.x,z:tapedDoorWall.z,orientation:tapedDoorWall.orientation,triggered:false,warning:false,warningAt:0,chargeAt:0};
+let arMode=false,mrTransitioning=false,mrSceneVisibility=null,mrSavedBackground=null,mrSavedFog=null,mrSavedDoorMatrix=null,mrTurnForward=null,mrChargeStart=null;
+function hideTapedWall(){if(tapedDoorWallIndex<0)return;if(!mrSavedDoorMatrix){mrSavedDoorMatrix=new THREE.Matrix4();wallMesh.getMatrixAt(tapedDoorWallIndex,mrSavedDoorMatrix);}wallMesh.setMatrixAt(tapedDoorWallIndex,new THREE.Matrix4().makeScale(0,0,0));wallMesh.instanceMatrix.needsUpdate=true;wallMesh.computeBoundingSphere();tapeGroup.visible=false;}
+function restoreTapedWall(){if(tapedDoorWallIndex>=0&&mrSavedDoorMatrix){wallMesh.setMatrixAt(tapedDoorWallIndex,mrSavedDoorMatrix);wallMesh.instanceMatrix.needsUpdate=true;wallMesh.computeBoundingSphere();}tapeGroup.visible=true;}
+function enterARScene(){if(arMode)return;arMode=true;mrSavedBackground=scene.background;mrSavedFog=scene.fog;mrSceneVisibility=new Map();for(const child of scene.children){mrSceneVisibility.set(child,child.visible);if(child!==rig&&child!==scareMonsterRoot)child.visible=false;}scene.background=null;scene.fog=null;}
+function leaveARScene(){if(!arMode)return;if(mrSceneVisibility){for(const [child,visible] of mrSceneVisibility)child.visible=visible;}scene.background=mrSavedBackground;scene.fog=mrSavedFog;arMode=false;mrSceneVisibility=null;}
+function showDoorWarning(){document.getElementById('mrFade').style.opacity='0';document.getElementById('doorWarning').style.display='flex';tapedDoor.warning=true;tapedDoor.warningAt=performance.now();if(arMode){const d=new THREE.Vector3();camera.getWorldDirection(d);d.y=0;if(d.lengthSq())d.normalize();mrTurnForward=d;}}
+async function enableMixedRealityFromTap(){const prompt=document.getElementById('mrPrompt'),hint=document.getElementById('hint');try{if(!navigator.xr||!(await navigator.xr.isSessionSupported('immersive-ar')))throw new Error('This browser or headset does not support WebXR passthrough.');mrTransitioning=true;const oldSession=renderer.xr.getSession();if(oldSession)await oldSession.end();const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local-floor'],optionalFeatures:['dom-overlay'],domOverlay:{root:document.body}});await renderer.xr.setSession(session);enterARScene();prompt.style.display='none';mrTransitioning=false;showDoorWarning();session.addEventListener('end',()=>{leaveARScene();restoreTapedWall();mrTransitioning=false;started=false;desktop=false;mobileTest=false;reset();document.getElementById('panel').classList.remove('hidden');document.getElementById('hint').textContent='Mixed-reality session ended. Enter VR to keep exploring.';});}catch(e){mrTransitioning=false;prompt.style.display='none';hint.textContent='Mixed reality unavailable here; continuing the scare in normal mode.';showDoorWarning();}}
 const tapeMat=new THREE.MeshStandardMaterial({color:0x1678ed,roughness:.88});
 const tapeGroup=new THREE.Group();
 tapeGroup.position.set(tapedDoor.x+(tapedDoor.orientation==='x'?.087:0),1.28,tapedDoor.z+(tapedDoor.orientation==='z'?.087:0));
@@ -560,16 +572,8 @@ function respawnAtRandomMazeSpot(){
   document.getElementById('hint').textContent='You died. You respawned somewhere else in the Backrooms.';
   camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);playerProtectedUntil=performance.now()+2600;
 }
-function finishJumpscare(){
-  // Hide the isolated scare room before moving the player back into the maze.
-  scareActive=false;scareRoom.visible=false;scareMonsterRoot.visible=false;document.getElementById('doorWarning').style.display='none';tapedDoor.triggered=false;tapedDoor.warning=false;tapedDoor.chargeAt=0;respawnAtRandomMazeSpot();savedScarePosition=null;
-}
-function triggerTapedDoor(){
-  if(tapedDoor.triggered||!started||lobbyMode||scareActive)return;
-  tapedDoor.triggered=true;tapedDoor.warning=true;tapedDoor.warningAt=performance.now();
-  savedScareYaw=yaw;savedScarePitch=pitch;
-  document.getElementById('doorWarning').style.display='flex';
-}
+function finishJumpscare(){scareActive=false;scareRoom.visible=false;scareMonsterRoot.visible=false;document.getElementById('doorWarning').style.display='none';tapedDoor.triggered=false;tapedDoor.warning=false;tapedDoor.chargeAt=0;if(arMode){leaveARScene();restoreTapedWall();}mrChargeStart=null;respawnAtRandomMazeSpot();savedScarePosition=null;}
+function triggerTapedDoor(){if(tapedDoor.triggered||!started||lobbyMode||scareActive||mrTransitioning)return;tapedDoor.triggered=true;tapedDoor.warning=false;tapedDoor.warningAt=performance.now();savedScareYaw=yaw;savedScarePitch=pitch;hideTapedWall();const fade=document.getElementById('mrFade');fade.style.transition='none';fade.style.opacity='1';setTimeout(async()=>{fade.style.transition='opacity .42s ease';if(renderer.xr.isPresenting){try{if(!navigator.xr||!(await navigator.xr.isSessionSupported('immersive-ar')))throw new Error('AR unsupported');mrTransitioning=true;const oldSession=renderer.xr.getSession();if(oldSession)await oldSession.end();const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local-floor'],optionalFeatures:['dom-overlay'],domOverlay:{root:document.body}});await renderer.xr.setSession(session);enterARScene();mrTransitioning=false;session.addEventListener('end',()=>{leaveARScene();restoreTapedWall();mrTransitioning=false;started=false;desktop=false;mobileTest=false;reset();document.getElementById('panel').classList.remove('hidden');document.getElementById('hint').textContent='Mixed-reality session ended. Enter VR to keep exploring.';});showDoorWarning();}catch(e){mrTransitioning=false;document.getElementById('mrPrompt').style.display='flex';document.getElementById('hint').textContent='Tap ENABLE MIXED REALITY to switch to passthrough.';}}else{showDoorWarning();}},460);}
 function updateMonster(dt,xrFrame){
   if(scareActive)return;
   const playerDistance=Math.hypot(monster.position.x-rig.position.x,monster.position.z-rig.position.z);
@@ -737,6 +741,8 @@ function updateMonsterSpectatorCamera(){
 document.getElementById('start').addEventListener('click',startDesktop);
 document.getElementById('enter').addEventListener('click',async()=>{startMonsterAudio();try{const s=await navigator.xr?.isSessionSupported('immersive-vr');if(!s){document.getElementById('hint').textContent='VR is not available in this browser. Try Play Without VR.';if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});return;}const session=await navigator.xr.requestSession('immersive-vr',{requiredFeatures:['local-floor'],optionalFeatures:['bounded-floor']});try{await renderer.xr.setSession(session);}catch(e){session.end().catch(()=>{});throw e;}
 session.addEventListener('end',()=>{
+  if(mrTransitioning)return;
+  leaveARScene();restoreTapedWall();
   started=false;desktop=false;mobileTest=false;monster.visible=false;
   reset();
   document.getElementById('panel').classList.remove('hidden');
@@ -744,7 +750,9 @@ session.addEventListener('end',()=>{
   if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});
 });
 started=true;desktop=false;mobileTest=false;testHand.visible=false;monster.visible=true;headOffset.position.set(0,0,0);camera.position.set(0,0,0);document.getElementById('panel').classList.add('hidden');document.getElementById('hint').textContent='Left joystick to move. Listen for the roaming entity.';renderer.setAnimationLoop(animate);}catch(e){document.getElementById('hint').textContent='Could not enter VR: '+e.message;if(monsterAudioContext&&monsterAudioContext.state==='running')monsterAudioContext.suspend().catch(()=>{});}});
-document.getElementById('reset').addEventListener('click',reset);
+document.getElementById('mrEnable').addEventListener('click',enableMixedRealityFromTap);
+document.getElementById('mrSkip').addEventListener('click',()=>{document.getElementById('mrPrompt').style.display='none';showDoorWarning();});
+document.getElementById('reset').addEventListener('click',()=>{leaveARScene();restoreTapedWall();document.getElementById('mrPrompt').style.display='none';document.getElementById('mrFade').style.opacity='0';reset();});
 addEventListener('keydown',e=>{if(!scareActive)keys[e.key.toLowerCase()]=true;if(e.key==='Escape'&&!scareActive)document.getElementById('panel').classList.remove('hidden');});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 let dragging=false,lastX=0,lastY=0;
@@ -822,8 +830,9 @@ function animate(timestamp,xrFrame){
    if(tapedDoor.warning){
      let turned=false;
      if(renderer.xr.isPresenting){
-       const dir=new THREE.Vector3();camera.getWorldDirection(dir);
-       turned=dir.dot(new THREE.Vector3(-Math.sin(savedScareYaw),0,-Math.cos(savedScareYaw)))<-.35;
+       const dir=new THREE.Vector3();camera.getWorldDirection(dir);dir.y=0;if(dir.lengthSq())dir.normalize();
+       const forward=arMode&&mrTurnForward?mrTurnForward:new THREE.Vector3(-Math.sin(savedScareYaw),0,-Math.cos(savedScareYaw));
+       turned=dir.dot(forward)<-.35;
      }else{
        let delta=yaw-savedScareYaw;while(delta>Math.PI)delta-=Math.PI*2;while(delta< -Math.PI)delta+=Math.PI*2;
        turned=Math.abs(delta)>2.05;
@@ -831,10 +840,7 @@ function animate(timestamp,xrFrame){
      if(turned){
        document.getElementById('doorWarning').style.display='none';
        tapedDoor.warning=false;
-       startJumpscare();
-       tapedDoor.chargeAt=performance.now();
-       scareMonsterRoot.position.set(scareRoomX,0,-3.0);
-       scareEndsAt=performance.now()+3600;
+       if(arMode){scareActive=true;scareEndsAt=performance.now()+3600;mrChargeStart=performance.now();const head=new THREE.Vector3();camera.getWorldPosition(head);const forward=new THREE.Vector3();camera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq())forward.normalize();scareMonsterRoot.position.copy(head).addScaledVector(forward,3);scareMonsterRoot.position.y=Math.max(0,head.y-1.15);scareMonsterRoot.rotation.y=Math.atan2(-forward.x,-forward.z);scareMonsterRoot.visible=true;playGameSound('chase');}else{startJumpscare();tapedDoor.chargeAt=performance.now();scareMonsterRoot.position.set(scareRoomX,0,-3.0);scareEndsAt=performance.now()+3600;}
      }
    }
    if(lobbyMode){
@@ -849,14 +855,15 @@ function animate(timestamp,xrFrame){
    updateMonster(dt,xrFrame);
  }
  if(scareActive){
-   if(tapedDoor.chargeAt&&now-tapedDoor.chargeAt<500){
+   if(arMode&&mrChargeStart){const t=THREE.MathUtils.clamp((now-mrChargeStart)/500,0,1),head=new THREE.Vector3(),forward=new THREE.Vector3();camera.getWorldPosition(head);camera.getWorldDirection(forward);forward.y=0;if(forward.lengthSq())forward.normalize();scareMonsterRoot.position.copy(head).addScaledVector(forward,3-2.45*t);scareMonsterRoot.position.y=Math.max(0,head.y-1.15);scareMonsterRoot.rotation.y=Math.atan2(-forward.x,-forward.z);if(t>=1&&tapedDoor.chargeAt===0){tapedDoor.chargeAt=now;playGameSound('jumpscare');playGameSound('monsterGrowl');}if(now>=scareEndsAt)finishJumpscare();else if(scareMixer)scareMixer.update(dt);
+   }else if(tapedDoor.chargeAt&&now-tapedDoor.chargeAt<500){
      const t=THREE.MathUtils.clamp((now-tapedDoor.chargeAt)/500,0,1);
      scareMonsterRoot.position.z=-3.0+3.85*t;
    }else if(tapedDoor.chargeAt&&now-tapedDoor.chargeAt>=500){
      tapedDoor.chargeAt=0;playGameSound('jumpscare');playGameSound('monsterGrowl');
    }
    if(now>=scareEndsAt)finishJumpscare();
-   else{testHand.visible=false;camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(-.12,0,0);if(scareMixer)scareMixer.update(dt);if(scareHeadNode&&scareHeadBase){const shake=Math.sin(now*.065)*.42;scareHeadNode.rotation.x=scareHeadBase.x+Math.sin(now*.09)*.15;scareHeadNode.rotation.y=scareHeadBase.y+shake;scareHeadNode.rotation.z=scareHeadBase.z+Math.sin(now*.11)*.12;}else if(scareBodyFallback){scareBodyFallback.rotation.y=Math.sin(now*.065)*.35;}}
+   else{testHand.visible=false;if(!arMode){camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(-.12,0,0);}if(scareMixer)scareMixer.update(dt);if(scareHeadNode&&scareHeadBase){const shake=Math.sin(now*.065)*.42;scareHeadNode.rotation.x=scareHeadBase.x+Math.sin(now*.09)*.15;scareHeadNode.rotation.y=scareHeadBase.y+shake;scareHeadNode.rotation.z=scareHeadBase.z+Math.sin(now*.11)*.12;}else if(scareBodyFallback){scareBodyFallback.rotation.y=Math.sin(now*.065)*.35;}}
  }else if(spectatingMonster&&started&&!renderer.xr.isPresenting){
    testHand.visible=false;
    updateMonsterSpectatorCamera();
