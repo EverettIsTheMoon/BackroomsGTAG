@@ -12,7 +12,7 @@
 </head>
 <body>
 <div id="ui">
- <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.7 · CHASE & JUMPSCARE FIXES</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
+ <div id="top"><div><div id="brand">BACKROOMS<span style="color:#e2d48a">GTAG</span></div><div id="status">PROTOTYPE 0.8 · JUMPSCARE TELEPORT & CHASE DIRECTION</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="teleportMonster" class="secondary" type="button">TELEPORT MONSTER</button><button id="spectate" class="secondary" type="button" aria-pressed="false">SPECTATE MONSTER</button><button id="reset" class="secondary">RESET</button></div></div>
  <section id="panel"><h1>DON'T GET LOST.</h1><p>A quiet place that should not exist. Push off the walls, keep moving, and listen for what is wandering nearby.</p><button id="enter">ENTER VR</button><button id="start" class="secondary">PLAY / MOBILE TEST</button><p style="font-size:12px;margin:14px 0 0">Mobile: use the joystick to move and drag to look. In VR, push off walls and the floor.</p></section>
  <div id="mobileControls" class="hidden"><div id="joyBase"><div id="joyKnob"></div></div><div id="lookHint">DRAG TO LOOK</div></div><div id="bottom"><span id="hint">VR: push your hands against surfaces to move.</span><span id="areaLabel">LOBBY</span></div>
 </div>
@@ -513,7 +513,7 @@ function findChaseCell(){
 }
 function startJumpscare(){
   if(scareActive)return;keys={};joyX=joyY=0;scareActive=true;scareEndsAt=performance.now()+3600;savedScarePosition=rig.position.clone();savedScareYaw=yaw;savedScarePitch=pitch;
-  rig.position.set(scareRoomX,0,2.35);yaw=0;pitch=0;velocity.set(0,0,0);scareMonsterRoot.visible=true;scareMonsterRoot.position.set(scareRoomX,0,-.25);scareMonsterRoot.rotation.set(0,0,0);
+  rig.position.set(scareRoomX,0,2.35);rig.updateMatrixWorld(true);headOffset.position.set(0,0,0);yaw=0;pitch=0;velocity.set(0,0,0);spectatingMonster=false;updateSpectateButton();camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(-.12,0,0);scareRoom.visible=true;scareMonsterRoot.visible=true;scareMonsterRoot.position.set(scareRoomX,0,-.25);scareMonsterRoot.rotation.set(0,0,0);scareMonsterRoot.updateMatrixWorld(true);
   if(scareWalkAction)scareWalkAction.setEffectiveTimeScale(1.25);setLoopSound('chase',false);setLoopSound('monsterAmbience',false);playGameSound('jumpscare');playGameSound('monsterGrowl');
 }
 function finishJumpscare(){
@@ -524,7 +524,7 @@ function updateMonster(dt,xrFrame){
   const playerDistance=Math.hypot(monster.position.x-rig.position.x,monster.position.z-rig.position.z);
   if(performance.now()<monsterFrozenUntil){if(monsterMixer)monsterMixer.update(0);return;}
   const nowMs=performance.now();setLoopSound('monsterAmbience',playerDistance<18,THREE.MathUtils.clamp(.42-playerDistance/65,.08,.42));setLoopSound('chase',playerDistance<7,THREE.MathUtils.clamp(.72-playerDistance/18,.15,.72));
-  if(nowMs>playerProtectedUntil&&playerDistance<1.65&&nowMs-lastNearScareAt>16000){lastNearScareAt=nowMs;startJumpscare();return;}
+  if(nowMs>playerProtectedUntil&&playerDistance<2.05&&nowMs-lastNearScareAt>12000){lastNearScareAt=nowMs;startJumpscare();return;}
   const chasing=playerDistance<8;if(chasing){const next=findChaseCell();if(next)monsterTargetCell=next;}
   const playerCellX=Math.max(0,Math.min(mazeSize-1,Math.round(rig.position.x/cell+mazeSize/2-.5))),playerCellZ=Math.max(0,Math.min(mazeSize-1,Math.round(rig.position.z/cell+mazeSize/2-.5)));
   const closeEnough=chasing&&playerDistance<1.15;let tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z);
@@ -535,7 +535,7 @@ function updateMonster(dt,xrFrame){
   else{const speed=chasing?2.65:.72,step=Math.min(dist,speed*dt),sx=dx/dist*step,sz=dz/dist*step,pieces=Math.max(1,Math.ceil(step/.06));let blocked=false;
     for(let i=1;i<=pieces;i++){const nx=monster.position.x+sx/pieces,nz=monster.position.z+sz/pieces;if(monsterCollides(nx,nz)){blocked=true;break;}monster.position.x=nx;monster.position.z=nz;}
     if(blocked){monsterTargetCell={x:monsterCell.x,z:monsterCell.z};if(!chasing)chooseMonsterTarget();walking=false;if(monsterWalkAction)monsterWalkAction.paused=true;}
-    if(walking)monster.rotation.y=Math.atan2(-dx,-dz)+Math.PI;
+    if(walking)monster.rotation.y=Math.atan2(-dx,-dz);
     if(!blocked&&dist<=step+.045){monster.position.x=tx;monster.position.z=tz;monsterCell.x=monsterTargetCell.x;monsterCell.z=monsterTargetCell.z;if(!chasing)chooseMonsterTarget();}
   }
   const t=performance.now()*.006,gait=walking?Math.sin(t*1.8):0;monsterVisual.position.y=.025+(walking?Math.abs(Math.sin(t*2.2))*.045:0);monsterVisual.rotation.z=walking?Math.sin(t*1.1)*.018:0;
