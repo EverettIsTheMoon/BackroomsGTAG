@@ -473,7 +473,7 @@ function updateMonster(dt,xrFrame){
   const tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z);
   const dx=tx-monster.position.x,dz=tz-monster.position.z,dist=Math.hypot(dx,dz);
   let walking=dist>=.045;
-  if(monsterWalkAction)monsterWalkAction.setEffectiveTimeScale(chasing?1:.42);
+  if(monsterWalkAction)monsterWalkAction.setEffectiveTimeScale(chasing?1:.21);
   if(!walking){
     // Snap only the tiny remaining distance so position never accumulates route drift.
     monster.position.x=tx;monster.position.z=tz;
