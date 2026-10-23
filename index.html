@@ -520,13 +520,16 @@ function finishJumpscare(){
   scareActive=false;scareMonsterRoot.visible=false;if(savedScarePosition)rig.position.copy(savedScarePosition);yaw=savedScareYaw;pitch=savedScarePitch;velocity.set(0,0,0);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);playerProtectedUntil=performance.now()+1800;
 }
 function updateMonster(dt,xrFrame){
-  if(scareActive){if(scareMixer)scareMixer.update(dt);return;}
+  if(scareActive)return;
   const playerDistance=Math.hypot(monster.position.x-rig.position.x,monster.position.z-rig.position.z);
   if(performance.now()<monsterFrozenUntil){if(monsterMixer)monsterMixer.update(0);return;}
   const nowMs=performance.now();setLoopSound('monsterAmbience',playerDistance<18,THREE.MathUtils.clamp(.42-playerDistance/65,.08,.42));setLoopSound('chase',playerDistance<7,THREE.MathUtils.clamp(.72-playerDistance/18,.15,.72));
   if(nowMs>playerProtectedUntil&&playerDistance<1.65&&nowMs-lastNearScareAt>16000){lastNearScareAt=nowMs;startJumpscare();return;}
   const chasing=playerDistance<8;if(chasing){const next=findChaseCell();if(next)monsterTargetCell=next;}
-  const closeEnough=chasing&&playerDistance<1.15,tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z),dx=tx-monster.position.x,dz=tz-monster.position.z,dist=Math.hypot(dx,dz);
+  const playerCellX=Math.max(0,Math.min(mazeSize-1,Math.round(rig.position.x/cell+mazeSize/2-.5))),playerCellZ=Math.max(0,Math.min(mazeSize-1,Math.round(rig.position.z/cell+mazeSize/2-.5)));
+  const closeEnough=chasing&&playerDistance<1.15;let tx=cellWorldX(monsterTargetCell.x),tz=cellWorldZ(monsterTargetCell.z);
+  if(chasing&&monsterCell.x===playerCellX&&monsterCell.z===playerCellZ){tx=rig.position.x;tz=rig.position.z;}
+  const dx=tx-monster.position.x,dz=tz-monster.position.z,dist=Math.hypot(dx,dz);
   let walking=!closeEnough&&dist>=.045;if(monsterWalkAction){monsterWalkAction.setEffectiveTimeScale(chasing?1:.21);monsterWalkAction.paused=!walking;}
   if(!walking){if(dist<.045){monster.position.x=tx;monster.position.z=tz;monsterCell.x=monsterTargetCell.x;monsterCell.z=monsterTargetCell.z;if(!chasing)chooseMonsterTarget();}}
   else{const speed=chasing?2.65:.72,step=Math.min(dist,speed*dt),sx=dx/dist*step,sz=dz/dist*step,pieces=Math.max(1,Math.ceil(step/.06));let blocked=false;
@@ -697,7 +700,7 @@ function animate(timestamp,xrFrame){
  }
  if(scareActive){
    if(now>=scareEndsAt)finishJumpscare();
-   else{testHand.visible=false;camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(-.12,0,0);if(scareHeadNode&&scareHeadBase){const shake=Math.sin(now*.065)*.42;scareHeadNode.rotation.x=scareHeadBase.x+Math.sin(now*.09)*.15;scareHeadNode.rotation.y=scareHeadBase.y+shake;scareHeadNode.rotation.z=scareHeadBase.z+Math.sin(now*.11)*.12;}else if(scareBodyFallback){scareBodyFallback.rotation.y=Math.sin(now*.065)*.35;}if(scareMixer)scareMixer.update(dt);}
+   else{testHand.visible=false;camera.position.set(0,1.52,0);camera.rotation.order='YXZ';camera.rotation.set(-.12,0,0);if(scareMixer)scareMixer.update(dt);if(scareHeadNode&&scareHeadBase){const shake=Math.sin(now*.065)*.42;scareHeadNode.rotation.x=scareHeadBase.x+Math.sin(now*.09)*.15;scareHeadNode.rotation.y=scareHeadBase.y+shake;scareHeadNode.rotation.z=scareHeadBase.z+Math.sin(now*.11)*.12;}else if(scareBodyFallback){scareBodyFallback.rotation.y=Math.sin(now*.065)*.35;}}
  }else if(spectatingMonster&&started&&!renderer.xr.isPresenting){
    testHand.visible=false;
    updateMonsterSpectatorCamera();
